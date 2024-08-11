@@ -84,7 +84,7 @@ async def create_persistent_context(playwright: Playwright):
         java_script_enabled=True,
         locale='en-US',
         timezone_id='America/New_York',
-        timeout=60000  # Increase timeout to 60 seconds
+        timeout=60000  # timeout 60 seconds
     )
 
     return browser
@@ -176,7 +176,7 @@ async def background_scrape(username: str, max_followers: int):
     except Exception as e:
         logging.error(f"Critical error in background_scrape: {str(e)}")
         scraping_status = {"status": "error", "message": f"Critical error occurred: {str(e)}"}
-        
+
 async def scrape_follower_list(page, username, max_followers=1000):
     global scraping_status
     print(f"Scraping followers list for {username}...")
@@ -184,6 +184,7 @@ async def scrape_follower_list(page, username, max_followers=1000):
     followers = []
     retry_count = 0
     max_retries = 3
+    follower_order = 0  # Initialize the order counter
 
     while len(followers) < max_followers and retry_count < max_retries:
         try:
@@ -206,7 +207,12 @@ async def scrape_follower_list(page, username, max_followers=1000):
                     handle = await element.query_selector('div[dir="ltr"] > span:has-text("@")')
                     name = await name.inner_text() if name else "N/A"
                     handle = await handle.inner_text() if handle else "N/A"
-                    followers.append({'name': name.strip(), 'handle': handle.strip()})
+                    followers.append({
+                        'name': name.strip(),
+                        'handle': handle.strip(),
+                        'follower_order': follower_order  # Add the order
+                    })
+                    follower_order += 1  # Increment the order
                     scraping_status["progress"] = len(followers)
                 except Exception as e:
                     print(f"Error extracting follower basic data: {str(e)}")
@@ -451,8 +457,9 @@ async def read_root():
         return f.read()
 
 @app.get("/api/followers")
-async def get_followers():
-    followers = list(followers_collection.find({}, {'_id': 0}))
+async def get_followers(sort_by: str = "follower_order"):
+    sort_direction = 1 if sort_by == "follower_order" else -1
+    followers = list(followers_collection.find({}, {'_id': 0}).sort(sort_by, sort_direction))
     print("Sample follower data:", followers[0] if followers else "No followers found")
     return followers
 
