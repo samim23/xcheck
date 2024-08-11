@@ -6,6 +6,7 @@ from datetime import datetime
 from playwright.async_api import async_playwright, Playwright, TimeoutError as PlaywrightTimeoutError
 import pandas as pd
 import numpy as np
+import difflib
 from dotenv import load_dotenv, set_key
 import time
 import random
@@ -24,6 +25,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import asyncio
 from contextlib import asynccontextmanager
+from bson import json_util
+from fastapi.encoders import jsonable_encoder
 
 # Download NLTK data
 nltk.download('vader_lexicon', quiet=True)
@@ -167,11 +170,33 @@ async def background_scrape(username: str, max_followers: int):
             followers = await scrape_follower_list(page, username, max_followers)
             if followers:
                 scraping_status["messages"].append(f"Scraped basic data for {len(followers)} followers.")
-                enriched_followers = await enrich_follower_data(page, followers, max_detailed=max_followers)
-                scraping_status["messages"].append("Enriched follower data.")
+                scraping_status["messages"].append("Starting to enrich follower data...")
+                
+                enriched_followers = []
+                for index, follower in enumerate(followers, 1):
+                    detailed_data = await extract_detailed_follower_data(page, follower['handle'])
+                    if detailed_data:
+                        enriched_follower = {**follower, **detailed_data}
+                        enriched_followers.append(enriched_follower)
+                        
+                        # Save partial results every 10 followers
+                        if index % 10 == 0:
+                            partial_df = pd.DataFrame(enriched_followers)
+                            save_to_mongodb(partial_df)
+                        
+                        # Update scraping status
+                        scraping_status["progress"] = index
+                        scraping_status["messages"].append(f"Scraped detailed data for {index}/{len(followers)} ({follower['handle']})")
+                        
+                        # Log progress in console
+                        print(f"Scraped {index}/{len(followers)} (@{follower['handle']})")
+                    
+                    await asyncio.sleep(1)  # Add a delay to avoid rate limiting
+
+                # Save final results
                 df_followers = pd.DataFrame(enriched_followers)
                 save_to_mongodb(df_followers)
-                scraping_status["messages"].append("Saved data to MongoDB.")
+                scraping_status["messages"].append("Saved all data to MongoDB.")
             
             scraping_status["status"] = "completed"
             scraping_status["progress"] = max_followers
@@ -190,6 +215,7 @@ async def background_scrape(username: str, max_followers: int):
         logging.error(f"Critical error in background_scrape: {str(e)}")
         scraping_status["status"] = "error"
         scraping_status["messages"].append(f"Critical error occurred: {str(e)}")
+
 
 async def scrape_follower_list(page, username, max_followers=1000):
     global scraping_status
@@ -253,15 +279,18 @@ def save_to_mongodb(followers_df):
     followers_df['quality_score'] = calculate_quality_score(followers_df)
     
     followers_list = followers_df.to_dict('records')
-    followers_with_bot_info = detect_bots(followers_list)
     
-    for follower in followers_with_bot_info:
+    for follower in followers_list:
+        # Convert datetime objects to strings
+        for key, value in follower.items():
+            if isinstance(value, datetime):
+                follower[key] = value.isoformat()
+        
         followers_collection.update_one(
             {'handle': follower['handle']},
             {'$set': follower},
             upsert=True
         )
-
 
 async def extract_detailed_follower_data(page, handle):
     try:
@@ -308,21 +337,20 @@ async def extract_detailed_follower_data(page, handle):
 async def enrich_follower_data(page, followers, max_detailed=100):
     print("Enriching follower data with detailed information...")
     enriched_followers = []
-    for follower in followers[:max_detailed]:
+    for index, follower in enumerate(followers[:max_detailed], 1):
         detailed_data = await extract_detailed_follower_data(page, follower['handle'])
         if detailed_data:
             enriched_followers.append({**follower, **detailed_data})
+        
+        # Update scraping status
+        scraping_status["progress"] = index
+        scraping_status["messages"].append(f"Scraped detailed data for {index}/{max_detailed} ({follower['handle']})")
+        
+        # Log progress in console
+        print(f"Scraped {index}/{max_detailed} (@{follower['handle']})")
+        
         await asyncio.sleep(1)  # Add a delay to avoid rate limiting
     return enriched_followers
-
-def analyze_followers_concurrently(followers, max_workers=5):
-    print("Analyzing followers...")
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_follower = {executor.submit(analyze_single_follower, follower): follower for follower in followers}
-        results = []
-        for future in tqdm(as_completed(future_to_follower), total=len(followers), desc="Analyzing followers"):
-            results.append(future.result())
-    return pd.DataFrame(results)
 
 def analyze_single_follower(follower):
     follower['follower_count'] = convert_count(follower['follower_count'])
@@ -332,6 +360,15 @@ def analyze_single_follower(follower):
     follower['is_suspicious'] = check_suspicious_patterns(follower)
     follower['sentiment_score'] = analyze_sentiment(follower['bio'])
     return follower
+
+def analyze_followers_concurrently(followers, max_workers=5):
+    print("Analyzing followers...")
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_follower = {executor.submit(analyze_single_follower, follower): follower for follower in followers}
+        results = []
+        for future in tqdm(as_completed(future_to_follower), total=len(followers), desc="Analyzing followers"):
+            results.append(future.result())
+    return pd.DataFrame(results)
 
 def convert_count(count):
     if isinstance(count, str):
@@ -363,37 +400,6 @@ def analyze_sentiment(text):
     sia = SentimentIntensityAnalyzer()
     return sia.polarity_scores(text)['compound']
 
-def detect_bots(followers):
-    for follower in followers:
-        bot_score = 0
-        
-        # Check for default profile picture
-        if follower.get('profile_image_url', '').endswith('default_profile_normal.png'):
-            bot_score += 2
-        
-        # Check follower to following ratio
-        follower_count = int(follower.get('follower_count', 0))
-        following_count = int(follower.get('following_count', 0))
-        if following_count > 0 and follower_count / following_count < 0.01:
-            bot_score += 2
-        
-        # Check account age
-        days_since_joining = int(follower.get('days_since_joining', 0))
-        if days_since_joining < 30:
-            bot_score += 1
-        
-        # Check for suspicious patterns in bio
-        bio = follower.get('bio', '').lower()
-        suspicious_keywords = ['follow back', 'follow for follow', 'auto follow']
-        if any(keyword in bio for keyword in suspicious_keywords):
-            bot_score += 2
-        
-        # Set is_bot flag based on bot_score
-        follower['is_bot'] = bot_score >= 4
-        follower['bot_score'] = bot_score
-
-    return followers
-
 def preprocess_follower_data(df):
     def convert_count(count):
         if pd.isna(count) or count == '':
@@ -408,10 +414,18 @@ def preprocess_follower_data(df):
                 return float(count)
         return 0.0  # Default to 0 if conversion fails
 
+    # Ensure required columns exist
+    required_columns = ['follower_count', 'following_count', 'join_date', 'name', 'handle', 'bio']
+    for col in required_columns:
+        if col not in df.columns:
+            df[col] = np.nan
+
     df['follower_count'] = df['follower_count'].apply(convert_count)
     df['following_count'] = df['following_count'].apply(convert_count)
     
     def parse_join_date(date_str):
+        if pd.isna(date_str):
+            return pd.NaT
         try:
             return pd.to_datetime(date_str, format='%B %Y')
         except:
@@ -425,39 +439,85 @@ def preprocess_follower_data(df):
 
     # Handle NaN values
     df['days_since_joining'] = df['days_since_joining'].fillna(0)
+    df['bio'] = df['bio'].fillna('')
 
     return df
 
 def calculate_quality_score(df):
     print("Calculating quality scores...")
     df = preprocess_follower_data(df)
-    
     score = pd.Series(0, index=df.index)
-    
+
     # Follower count (log-scaled)
     score += np.log1p(df['follower_count']) / 10
-    
+
     # Follower-following ratio (capped)
     df['follower_following_ratio'] = df['follower_count'] / df['following_count'].replace(0, 1)
     score += df['follower_following_ratio'].clip(upper=10) / 5
-    
+
+    # Penalize very low follower-following ratios
+    score -= (df['follower_following_ratio'] < 0.01).astype(int) * 0.5
+
     # Account age
     score += np.log1p(df['days_since_joining']) / 10
     
-    # Bio length
-    score += df['bio'].str.len() / 100
-    
+    # Penalize very new accounts
+    score -= (df['days_since_joining'] < 30).astype(int) * 0.5
+
+    # Bio length and content
+    if 'bio' in df.columns:
+        score += df['bio'].fillna('').str.len() / 100
+        suspicious_keywords = ['follow back', 'follow for follow', 'auto follow']
+        score -= df['bio'].fillna('').str.lower().apply(lambda x: any(keyword in str(x) for keyword in suspicious_keywords)).astype(int) * 0.5
+
+    # Profile picture
+    if 'profile_image_url' in df.columns:
+        has_profile_image = ~(df['profile_image_url'].fillna('').str.endswith('default_profile_normal.png') | df['profile_image_url'].isna())
+        score += has_profile_image.astype(int) * 0.5
+
     # Sentiment score (if available)
     if 'sentiment_score' in df.columns:
         score += df['sentiment_score']
-    
+
     # Verified status
-    score += df['verified'].astype(int) * 2
-    
+    if 'verified' in df.columns:
+        score += df['verified'].astype(int) * 2
+
+    # URL in bio
+    if 'bio' in df.columns:
+        url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+        score += df['bio'].fillna('').str.contains(url_pattern, na=False, regex=True).astype(int) * 0.3
+
+    # Profile completeness
+    profile_completeness = (
+        df['name'].notna() & 
+        (df['bio'].fillna('').str.len() > 0) & 
+        df.get('location', pd.Series(dtype=bool)).notna()  # Use get() method with a default
+    ).astype(int)
+    score += profile_completeness * 0.5
+
+    # Account name similarity to handle
+    def name_handle_similarity(row):
+        name = str(row['name']).lower().replace(' ', '')
+        handle = str(row['handle']).lower().replace('@', '')
+        return difflib.SequenceMatcher(None, name, handle).ratio()
+
+    df['name_handle_similarity'] = df.apply(name_handle_similarity, axis=1)
+    score -= (df['name_handle_similarity'] < 0.3).astype(int) * 0.3
+
     # Normalize the score
     score = (score - score.min()) / (score.max() - score.min())
-    
+
     return score
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return json_util.default(obj)
+
+def custom_jsonable_encoder(obj):
+    return jsonable_encoder(obj, custom_encoder={datetime: lambda dt: dt.isoformat()})
 
 # Global variable to store the persistent context
 persistent_context = None
@@ -473,8 +533,8 @@ async def lifespan(app: FastAPI):
     if persistent_context:
         await persistent_context.close()
 
+# Initalize FastAPI app
 app = FastAPI(lifespan=lifespan)
-
 
 # Serve static files (like index.html)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -483,6 +543,7 @@ class Credentials(BaseModel):
     username: str
     password: str
 
+# App Routes
 @app.get("/api/credentials")
 async def get_credentials():
     return {"username": os.getenv('X_USERNAME', ''), "password": os.getenv('X_PASSWORD', '')}
@@ -526,6 +587,40 @@ async def start_scrape(request: ScrapeRequest, background_tasks: BackgroundTasks
 async def get_scrape_status():
     return JSONResponse(content=scraping_status)
 
+def convert_datetime(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {k: convert_datetime(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_datetime(v) for v in obj]
+    return obj
+
+@app.get("/api/partial-results")
+async def get_partial_results():
+    # Get the total count of documents in the collection
+    total_count = followers_collection.count_documents({})
+    
+    # Get the most recent 100 documents, or all if less than 100
+    limit = min(100, total_count)
+    
+    partial_results = list(followers_collection.find({}, {'_id': 0}).sort("follower_order", -1).limit(limit))
+    
+    # Reverse the list to get them in ascending order
+    partial_results.reverse()
+    
+    # Convert all datetime objects to ISO format strings
+    converted_results = convert_datetime(partial_results)
+    
+    # Use jsonable_encoder to handle any other non-standard types
+    encoded_results = jsonable_encoder({
+        "total_count": total_count,
+        "partial_results": converted_results
+    })
+    
+    return JSONResponse(content=encoded_results)
+
+# Main
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

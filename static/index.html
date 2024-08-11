@@ -18,56 +18,61 @@
 			<p>Loading...</p>
 		</div>
 
-		<h1>X-Check</h1>
+		<div class="header">XCHECK</div>
 
 		<div id="scrapeControls" class="card">
-			<h2 class="card-title">X Account Management</h2>
-			<div class="form-group">
-				<label for="xUsername">X Username:</label>
-				<input
-					type="text"
-					id="xUsername"
-					class="form-input"
-					placeholder="Enter X username"
-				/>
+			<div class="card-section">
+				<h2 class="card-title">X Account Details</h2>
+				<div class="form-group">
+					<label for="xUsername">Username</label>
+					<input
+						type="text"
+						id="xUsername"
+						class="form-input"
+						placeholder="Enter X username"
+					/>
+				</div>
+				<div class="form-group">
+					<label for="xPassword">Password</label>
+					<input
+						type="password"
+						id="xPassword"
+						class="form-input"
+						placeholder="Enter X password"
+					/>
+				</div>
+				<button onclick="updateCredentials()" class="btn btn-primary">
+					Update Credentials
+				</button>
 			</div>
-			<div class="form-group">
-				<label for="xPassword">X Password:</label>
-				<input
-					type="password"
-					id="xPassword"
-					class="form-input"
-					placeholder="Enter X password"
-				/>
-			</div>
-			<button onclick="updateCredentials()" class="btn btn-primary">
-				Update Credentials
-			</button>
 
-			<h2 class="card-title mt-4">Start New Scrape</h2>
-			<div class="form-group">
-				<label for="usernameInput">Target Username:</label>
-				<input
-					type="text"
-					id="usernameInput"
-					class="form-input"
-					placeholder="Enter target X username"
-				/>
+			<div class="card-section">
+				<h2 class="card-title">Start New Scrape</h2>
+				<div class="form-group">
+					<label for="usernameInput">Target Username</label>
+					<input
+						type="text"
+						id="usernameInput"
+						class="form-input"
+						placeholder="Enter target X username"
+					/>
+				</div>
+				<div class="form-group">
+					<label for="maxFollowersInput">Max Followers</label>
+					<input
+						type="number"
+						id="maxFollowersInput"
+						class="form-input"
+						placeholder="Enter max followers to scrape"
+					/>
+				</div>
+				<button onclick="startScrape()" class="btn btn-success">
+					Start Scrape
+				</button>
 			</div>
-			<div class="form-group">
-				<label for="maxFollowersInput">Max Followers:</label>
-				<input
-					type="number"
-					id="maxFollowersInput"
-					class="form-input"
-					placeholder="Enter max followers to scrape"
-				/>
-			</div>
-			<button onclick="startScrape()" class="btn btn-success">
-				Start Scrape
-			</button>
 
-			<div id="scrapeProgress" class="mt-4" style="display: none">
+			<div id="scrapeProgress" class="card-section" style="display: none">
+				<h2 class="card-title">Scrape Progress</h2>
 				<p>Status: <span id="scrapeStatus" class="font-bold"></span></p>
 				<progress
 					id="scrapeProgressBar"
@@ -75,20 +80,10 @@
 					max="100"
 					class="w-full"
 				></progress>
-				<button onclick="toggleStatusMessages()" class="btn btn-primary mt-2">
+				<button onclick="toggleStatusMessages()" class="btn btn-secondary mt-2">
 					Toggle Status Messages
 				</button>
-				<div
-					id="statusMessages"
-					style="
-						display: none;
-						max-height: 200px;
-						overflow-y: auto;
-						background-color: #f0f0f0;
-						padding: 10px;
-						margin-top: 10px;
-					"
-				></div>
+				<div id="statusMessages" class="status-messages"></div>
 			</div>
 		</div>
 
@@ -102,37 +97,69 @@
 				<canvas id="verifiedChart"></canvas>
 			</div>
 		</div>
+		<h2>Followers</h2>
 
-		<div id="searchBox">
-			<input type="text" id="searchInput" placeholder="Search followers..." />
-			<button onclick="searchFollowers()">Search</button>
+		<div class="search-filter-container">
+			<div class="search-box">
+				<input type="text" id="searchInput" placeholder="Search followers..." />
+				<button onclick="searchFollowers()" class="icon-button">
+					<i class="fas fa-search"></i>
+				</button>
+			</div>
+
+			<div class="filter-toggle">
+				<button onclick="toggleFilters()" class="btn btn-secondary">
+					<i class="fas fa-filter"></i> Filters
+				</button>
+			</div>
+
+			<div id="filterOptions" class="filter-panel">
+				<div class="filter-group">
+					<label for="followerCountFilter">Minimum Followers</label>
+					<input
+						type="number"
+						id="followerCountFilter"
+						min="0"
+						placeholder="e.g., 1000"
+					/>
+				</div>
+
+				<div class="filter-group">
+					<label for="accountAgeFilter">Minimum Account Age (days)</label>
+					<input
+						type="number"
+						id="accountAgeFilter"
+						min="0"
+						placeholder="e.g., 30"
+					/>
+				</div>
+
+				<div class="filter-group">
+					<label for="verificationFilter">Verification Status</label>
+					<select id="verificationFilter">
+						<option value="all">All</option>
+						<option value="verified">Verified</option>
+						<option value="unverified">Unverified</option>
+					</select>
+				</div>
+
+				<div class="filter-actions">
+					<button onclick="applyFilters()" class="btn btn-primary">
+						Apply Filters
+					</button>
+					<button onclick="resetFilters()" class="btn btn-secondary">
+						Reset
+					</button>
+				</div>
+			</div>
 		</div>
 
-		<div id="filterOptions">
-			<label for="followerCountFilter">Minimum Follower Count:</label>
-			<input type="number" id="followerCountFilter" min="0" />
-
-			<label for="accountAgeFilter">Minimum Account Age (days):</label>
-			<input type="number" id="accountAgeFilter" min="0" />
-
-			<label for="verificationFilter">Verification Status:</label>
-			<select id="verificationFilter">
-				<option value="all">All</option>
-				<option value="verified">Verified</option>
-				<option value="unverified">Unverified</option>
-			</select>
-
-			<button onclick="applyFilters()">Apply Filters</button>
-		</div>
-
-		<h2>Follower Data</h2>
 		<table id="followerTable">
 			<thead>
 				<tr>
 					<th>Handle</th>
 					<th>Name</th>
 					<th class="sortable" data-sort="quality_score">Quality Score</th>
-					<th class="sortable" data-sort="is_bot">Is Bot</th>
 					<th class="sortable" data-sort="follower_count">Follower Count</th>
 					<th class="sortable" data-sort="following_count">Following Count</th>
 					<th class="sortable" data-sort="account_age_days">
@@ -304,14 +331,13 @@
 						typeof follower.quality_score === "number"
 							? follower.quality_score.toFixed(2)
 							: "N/A";
-					row.insertCell(5).textContent = follower.is_bot;
-					row.insertCell(6).textContent = follower.follower_count || "N/A";
-					row.insertCell(7).textContent = follower.following_count || "N/A";
-					row.insertCell(8).textContent =
+					row.insertCell(5).textContent = follower.follower_count || "N/A";
+					row.insertCell(6).textContent = follower.following_count || "N/A";
+					row.insertCell(7).textContent =
 						follower.days_since_joining !== undefined
 							? parseInt(follower.days_since_joining)
 							: "N/A";
-					row.insertCell(9).textContent = follower.verified ? "Yes" : "No";
+					row.insertCell(8).textContent = follower.verified ? "Yes" : "No";
 				});
 			}
 
@@ -424,6 +450,10 @@
 			}
 
 			async function startScrape() {
+				const scrapeButton = document.querySelector("button.btn.btn-success");
+				scrapeButton.disabled = true;
+				scrapeButton.textContent = "Scraping...";
+
 				const username = document.getElementById("usernameInput").value;
 				const maxFollowers = document.getElementById("maxFollowersInput").value;
 
@@ -450,6 +480,8 @@
 					checkScrapeStatus();
 				} else {
 					alert("Failed to start scrape");
+					scrapeButton.disabled = false;
+					scrapeButton.textContent = "Start Scrape";
 				}
 			}
 
@@ -470,12 +502,18 @@
 						.join("");
 					statusMessages.scrollTop = statusMessages.scrollHeight;
 
-					setTimeout(checkScrapeStatus, 1000);
+					// Fetch and display partial results
+					const partialResultsResponse = await fetch("/api/partial-results");
+					const partialResultsData = await partialResultsResponse.json();
+					renderTable(partialResultsData.partial_results);
+					updateCharts(partialResultsData.partial_results);
+
+					setTimeout(checkScrapeStatus, 5000); // Check every 5 seconds
 				} else if (status.status === "completed") {
 					document.getElementById("scrapeProgressBar").value = 100;
 					statusMessages.innerHTML += "<p>Scrape completed!</p>";
 					alert("Scrape completed!");
-					fetchFollowerData();
+					fetchFollowerData(); // Fetch all data once completed
 				} else if (status.status === "error") {
 					document.getElementById("scrapeProgressBar").value = 100;
 					document.getElementById("scrapeStatus").textContent =
@@ -542,6 +580,25 @@
 					th.addEventListener("click", () => sortFollowers(th.dataset.sort));
 				});
 			});
+
+			function toggleFilters() {
+				const filterPanel = document.getElementById("filterOptions");
+				if (
+					filterPanel.style.display === "none" ||
+					filterPanel.style.display === ""
+				) {
+					filterPanel.style.display = "block";
+				} else {
+					filterPanel.style.display = "none";
+				}
+			}
+
+			function resetFilters() {
+				document.getElementById("followerCountFilter").value = "";
+				document.getElementById("accountAgeFilter").value = "";
+				document.getElementById("verificationFilter").value = "all";
+				applyFilters();
+			}
 		</script>
 	</body>
 </html>

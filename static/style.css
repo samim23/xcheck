@@ -4,7 +4,18 @@ body {
     color: #333;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 0px 10px;
+}
+.header {
+    padding: 10px 0px;
+    font-size: large;
+    font-weight: bold;
+    margin-top: 0px;
+    border-bottom: 1px solid lightgray;
+    position: sticky;
+    top:0;
+    background-color: white;
+    color: blue;
 }
 h1,
 h2 {
@@ -37,7 +48,7 @@ h2 {
     background-color: #f0f0f0;
     padding: 10px;
     margin-top: 20px;
-    /* display: none; */
+    display: none;
 }
 .profile-link {
     color: #1da1f2;
@@ -72,21 +83,131 @@ h2 {
 progress {
     width: 100%;
 }
-
 .card {
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 20px;
+    padding: 0;
     margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.card-section {
+    padding-bottom: 20px;
+}
+
+.card-section:last-child {
+    border-bottom: none;
 }
 
 .card-title {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: bold;
     margin-bottom: 1rem;
     color: #1da1f2;
-    margin-top: 0px;
+    margin-top: 0;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #657786;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #e1e8ed;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #1da1f2;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background-color: #1da1f2;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #1a91da;
+}
+
+.btn-success {
+    background-color: #17bf63;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #15a857;
+}
+
+.btn-secondary {
+    background-color: #657786;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #556472;
+}
+
+.status-messages {
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #f5f8fa;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    display: none;
+}
+
+#scrapeProgressBar {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 10px;
+    border-radius: 5px;
+    background: #e1e8ed;
+    outline: none;
+    margin: 10px 0;
+}
+
+#scrapeProgressBar::-webkit-progress-bar {
+    background: #e1e8ed;
+    border-radius: 5px;
+}
+
+#scrapeProgressBar::-webkit-progress-value {
+    background: #1da1f2;
+    border-radius: 5px;
+}
+
+#scrapeProgressBar::-moz-progress-bar {
+    background: #1da1f2;
+    border-radius: 5px;
 }
 
 .form-group {
@@ -211,5 +332,139 @@ tr:hover {
     #followerTable th,
     #followerTable td {
         padding: 3px;
+    }
+}
+
+
+.search-filter-container {
+    background-color: #f5f8fa;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-box {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.search-box input {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px solid #e1e8ed;
+    border-radius: 20px 0 0 20px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.search-box input:focus {
+    border-color: #1da1f2;
+}
+
+.search-box .icon-button {
+    background-color: #1da1f2;
+    color: white;
+    border: none;
+    border-radius: 0 20px 20px 0;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.search-box .icon-button:hover {
+    background-color: #1a91da;
+}
+
+.filter-toggle {
+    margin-bottom: 15px;
+}
+
+.filter-panel {
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px;
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-group {
+    margin-bottom: 15px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #657786;
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e1e8ed;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: #1da1f2;
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: space-between;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background-color: #1da1f2;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #1a91da;
+}
+
+.btn-secondary {
+    background-color: #f5f8fa;
+    color: #1da1f2;
+    border: 1px solid #1da1f2;
+}
+
+.btn-secondary:hover {
+    background-color: #e8f5fe;
+}
+
+@media (max-width: 768px) {
+    .filter-actions {
+        flex-direction: column;
+    }
+    
+    .filter-actions .btn {
+        width: 100%;
+        margin-bottom: 10px;
     }
 }
