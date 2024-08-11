@@ -145,8 +145,13 @@ async def is_logged_in(page):
     return page.url.startswith("https://x.com/home") or await page.locator('a[data-testid="AppTabBar_Home_Link"]').count() > 0
 
 async def background_scrape(username: str, max_followers: int):
-    global scraping_status, persistent_context, X_USERNAME, X_PASSWORD
-    scraping_status = {"status": "running", "progress": 0, "total": max_followers}
+    global scraping_status
+    scraping_status = {
+        "status": "running",
+        "progress": 0,
+        "total": max_followers,
+        "messages": ["Starting scrape..."]
+    }
 
     try:
         if not persistent_context:
@@ -157,25 +162,34 @@ async def background_scrape(username: str, max_followers: int):
         page = await persistent_context.new_page()
         try:
             await login_to_x(page, X_USERNAME, X_PASSWORD)
+            scraping_status["messages"].append("Logged in successfully.")
             
             followers = await scrape_follower_list(page, username, max_followers)
             if followers:
+                scraping_status["messages"].append(f"Scraped basic data for {len(followers)} followers.")
                 enriched_followers = await enrich_follower_data(page, followers, max_detailed=max_followers)
+                scraping_status["messages"].append("Enriched follower data.")
                 df_followers = pd.DataFrame(enriched_followers)
                 save_to_mongodb(df_followers)
+                scraping_status["messages"].append("Saved data to MongoDB.")
             
-            scraping_status = {"status": "completed", "progress": max_followers, "total": max_followers}
+            scraping_status["status"] = "completed"
+            scraping_status["progress"] = max_followers
+            scraping_status["messages"].append("Scrape completed successfully.")
         except PlaywrightTimeoutError as e:
             logging.error(f"Timeout error during scraping: {str(e)}")
-            scraping_status = {"status": "error", "message": f"Timeout error during scraping: {str(e)}"}
+            scraping_status["status"] = "error"
+            scraping_status["messages"].append(f"Timeout error during scraping: {str(e)}")
         except Exception as e:
             logging.error(f"Error during scraping: {str(e)}")
-            scraping_status = {"status": "error", "message": f"Error during scraping: {str(e)}"}
+            scraping_status["status"] = "error"
+            scraping_status["messages"].append(f"Error during scraping: {str(e)}")
         finally:
             await page.close()
     except Exception as e:
         logging.error(f"Critical error in background_scrape: {str(e)}")
-        scraping_status = {"status": "error", "message": f"Critical error occurred: {str(e)}"}
+        scraping_status["status"] = "error"
+        scraping_status["messages"].append(f"Critical error occurred: {str(e)}")
 
 async def scrape_follower_list(page, username, max_followers=1000):
     global scraping_status
@@ -478,4 +492,4 @@ async def get_scrape_status():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

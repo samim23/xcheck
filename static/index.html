@@ -207,6 +207,20 @@
 					max="100"
 					class="w-full"
 				></progress>
+				<button onclick="toggleStatusMessages()" class="btn btn-primary mt-2">
+					Toggle Status Messages
+				</button>
+				<div
+					id="statusMessages"
+					style="
+						display: none;
+						max-height: 200px;
+						overflow-y: auto;
+						background-color: #f0f0f0;
+						padding: 10px;
+						margin-top: 10px;
+					"
+				></div>
 			</div>
 		</div>
 
@@ -245,6 +259,12 @@
 		</div>
 
 		<script>
+			function toggleStatusMessages() {
+				const statusMessages = document.getElementById("statusMessages");
+				statusMessages.style.display =
+					statusMessages.style.display === "none" ? "block" : "none";
+			}
+
 			function calculateMedian(numbers) {
 				const sorted = numbers.slice().sort((a, b) => a - b);
 				const middle = Math.floor(sorted.length / 2);
@@ -405,7 +425,25 @@
 				verifiedCount,
 				unverifiedCount
 			) {
-				new Chart(document.getElementById("qualityChart"), {
+				// Destroy existing charts if they exist
+				if (
+					window.qualityChart &&
+					typeof window.qualityChart.destroy === "function"
+				) {
+					window.qualityChart.destroy();
+				}
+				if (
+					window.verifiedChart &&
+					typeof window.verifiedChart.destroy === "function"
+				) {
+					window.verifiedChart.destroy();
+				}
+
+				// Create new charts
+				const qualityChartCtx = document
+					.getElementById("qualityChart")
+					.getContext("2d");
+				window.qualityChart = new Chart(qualityChartCtx, {
 					type: "pie",
 					data: {
 						labels: ["High Quality", "Low Quality"],
@@ -418,7 +456,10 @@
 					},
 				});
 
-				new Chart(document.getElementById("verifiedChart"), {
+				const verifiedChartCtx = document
+					.getElementById("verifiedChart")
+					.getContext("2d");
+				window.verifiedChart = new Chart(verifiedChartCtx, {
 					type: "pie",
 					data: {
 						labels: ["Verified", "Not Verified"],
@@ -467,19 +508,34 @@
 				const status = await response.json();
 
 				document.getElementById("scrapeStatus").textContent = status.status;
+				const statusMessages = document.getElementById("statusMessages");
+
 				if (status.status === "running") {
 					const progress = (status.progress / status.total) * 100;
 					document.getElementById("scrapeProgressBar").value = progress;
+
+					// Update status messages
+					statusMessages.innerHTML = status.messages
+						.map((msg) => `<p>${msg}</p>`)
+						.join("");
+					statusMessages.scrollTop = statusMessages.scrollHeight;
+
 					setTimeout(checkScrapeStatus, 1000);
 				} else if (status.status === "completed") {
 					document.getElementById("scrapeProgressBar").value = 100;
+					statusMessages.innerHTML += "<p>Scrape completed!</p>";
 					alert("Scrape completed!");
 					fetchFollowerData();
 				} else if (status.status === "error") {
 					document.getElementById("scrapeProgressBar").value = 100;
 					document.getElementById("scrapeStatus").textContent =
-						"Error: " + status.message;
-					alert(`Scrape failed: ${status.message}`);
+						"Error: " + status.messages[status.messages.length - 1];
+					statusMessages.innerHTML += `<p>Error: ${
+						status.messages[status.messages.length - 1]
+					}</p>`;
+					alert(
+						`Scrape failed: ${status.messages[status.messages.length - 1]}`
+					);
 				}
 			}
 
@@ -522,6 +578,9 @@
 				const imageHeader = document.createElement("th");
 				imageHeader.textContent = "Profile";
 				headerRow.insertBefore(imageHeader, headerRow.children[1]);
+
+				// Initialize charts with dummy data
+				updateCharts(0, 0, 0, 0);
 
 				fetchFollowerData();
 				document.querySelectorAll("th.sortable").forEach((th) => {
