@@ -3,154 +3,22 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Twitter Follower Analysis</title>
+		<title>X-Check</title>
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-		<style>
-			body {
-				font-family: Arial, sans-serif;
-				line-height: 1.6;
-				color: #333;
-				max-width: 1200px;
-				margin: 0 auto;
-				padding: 20px;
-			}
-			h1,
-			h2 {
-				color: #1da1f2;
-			}
-			#followerTable {
-				width: 100%;
-				border-collapse: collapse;
-			}
-			#followerTable th,
-			#followerTable td {
-				border: 1px solid #ddd;
-				padding: 8px;
-				text-align: left;
-			}
-			#followerTable th {
-				background-color: #1da1f2;
-				color: white;
-			}
-			.charts-container {
-				display: flex;
-				justify-content: space-between;
-				margin-bottom: 120px;
-			}
-			.chart-container {
-				width: 48%;
-				height: 300px;
-			}
-			#debug {
-				background-color: #f0f0f0;
-				padding: 10px;
-				margin-top: 20px;
-				/* display: none; */
-			}
-			.profile-link {
-				color: #1da1f2;
-				text-decoration: none;
-			}
-			.profile-link:hover {
-				text-decoration: underline;
-			}
-			.sortable {
-				cursor: pointer;
-			}
-			.sortable::after {
-				content: " ↕️";
-				font-size: 0.8em;
-			}
-			.sortable.asc::after {
-				content: " ↑";
-			}
-			.sortable.desc::after {
-				content: " ↓";
-			}
-			#scrapeControls {
-				margin-bottom: 20px;
-				padding: 10px;
-				background-color: #f0f0f0;
-				border-radius: 5px;
-			}
-			#scrapeProgress {
-				margin-top: 10px;
-				display: none;
-			}
-			progress {
-				width: 100%;
-			}
-
-			.card {
-				background-color: #ffffff;
-				border-radius: 8px;
-				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-				padding: 20px;
-				margin-bottom: 20px;
-			}
-
-			.card-title {
-				font-size: 1.5rem;
-				font-weight: bold;
-				margin-bottom: 1rem;
-				color: #1da1f2;
-				margin-top: 0px;
-			}
-
-			.form-group {
-				margin-bottom: 1rem;
-			}
-
-			.form-input {
-				width: 100%;
-				padding: 0.5rem;
-				border: 1px solid #e1e8ed;
-				border-radius: 4px;
-				font-size: 1rem;
-			}
-
-			.btn {
-				padding: 0.5rem 1rem;
-				border: none;
-				border-radius: 4px;
-				font-size: 1rem;
-				cursor: pointer;
-				transition: background-color 0.3s;
-			}
-
-			.btn-primary {
-				background-color: #1da1f2;
-				color: white;
-			}
-
-			.btn-primary:hover {
-				background-color: #1a91da;
-			}
-
-			.btn-success {
-				background-color: #17bf63;
-				color: white;
-			}
-
-			.btn-success:hover {
-				background-color: #15a857;
-			}
-
-			.mt-4 {
-				margin-top: 1rem;
-			}
-
-			.w-full {
-				width: 100%;
-			}
-
-			.font-bold {
-				font-weight: bold;
-			}
-		</style>
+		<link
+			rel="stylesheet"
+			href="/static/style.css"
+			type="text/css"
+			media="all"
+		/>
 	</head>
 	<body>
-		<h1>Twitter Follower Analysis</h1>
+		<div id="loadingSpinner" style="display: none">
+			<div class="spinner"></div>
+			<p>Loading...</p>
+		</div>
+
+		<h1>X-Check</h1>
 
 		<div id="scrapeControls" class="card">
 			<h2 class="card-title">X Account Management</h2>
@@ -235,6 +103,28 @@
 			</div>
 		</div>
 
+		<div id="searchBox">
+			<input type="text" id="searchInput" placeholder="Search followers..." />
+			<button onclick="searchFollowers()">Search</button>
+		</div>
+
+		<div id="filterOptions">
+			<label for="followerCountFilter">Minimum Follower Count:</label>
+			<input type="number" id="followerCountFilter" min="0" />
+
+			<label for="accountAgeFilter">Minimum Account Age (days):</label>
+			<input type="number" id="accountAgeFilter" min="0" />
+
+			<label for="verificationFilter">Verification Status:</label>
+			<select id="verificationFilter">
+				<option value="all">All</option>
+				<option value="verified">Verified</option>
+				<option value="unverified">Unverified</option>
+			</select>
+
+			<button onclick="applyFilters()">Apply Filters</button>
+		</div>
+
 		<h2>Follower Data</h2>
 		<table id="followerTable">
 			<thead>
@@ -242,6 +132,7 @@
 					<th>Handle</th>
 					<th>Name</th>
 					<th class="sortable" data-sort="quality_score">Quality Score</th>
+					<th class="sortable" data-sort="is_bot">Is Bot</th>
 					<th class="sortable" data-sort="follower_count">Follower Count</th>
 					<th class="sortable" data-sort="following_count">Following Count</th>
 					<th class="sortable" data-sort="account_age_days">
@@ -266,14 +157,26 @@
 			}
 
 			function calculateMedian(numbers) {
+				if (numbers.length === 0) return 0;
 				const sorted = numbers.slice().sort((a, b) => a - b);
 				const middle = Math.floor(sorted.length / 2);
-
 				if (sorted.length % 2 === 0) {
 					return (sorted[middle - 1] + sorted[middle]) / 2;
 				}
-
 				return sorted[middle];
+			}
+
+			function searchFollowers() {
+				const searchTerm = document
+					.getElementById("searchInput")
+					.value.toLowerCase();
+				const searchResults = followers.filter(
+					(follower) =>
+						follower.name.toLowerCase().includes(searchTerm) ||
+						follower.handle.toLowerCase().includes(searchTerm)
+				);
+				renderTable(searchResults);
+				updateCharts(searchResults);
 			}
 
 			let followers = [];
@@ -339,10 +242,36 @@
 				});
 			}
 
-			function renderTable() {
+			function applyFilters() {
+				const minFollowers =
+					parseInt(document.getElementById("followerCountFilter").value) || 0;
+				const minAge =
+					parseInt(document.getElementById("accountAgeFilter").value) || 0;
+				const verificationStatus =
+					document.getElementById("verificationFilter").value;
+
+				const filteredFollowers = followers.filter((follower) => {
+					const followerCount = parseInt(follower.follower_count) || 0;
+					const accountAge = parseInt(follower.days_since_joining) || 0;
+					const isVerified = follower.verified === true;
+
+					return (
+						followerCount >= minFollowers &&
+						accountAge >= minAge &&
+						(verificationStatus === "all" ||
+							(verificationStatus === "verified" && isVerified) ||
+							(verificationStatus === "unverified" && !isVerified))
+					);
+				});
+
+				renderTable(filteredFollowers);
+				updateCharts(filteredFollowers);
+			}
+
+			function renderTable(data = followers) {
 				const tableBody = document.getElementById("followerTableBody");
 				tableBody.innerHTML = "";
-				followers.forEach((follower) => {
+				data.forEach((follower) => {
 					const row = tableBody.insertRow();
 
 					// Add follower order cell
@@ -375,13 +304,14 @@
 						typeof follower.quality_score === "number"
 							? follower.quality_score.toFixed(2)
 							: "N/A";
-					row.insertCell(5).textContent = follower.follower_count || "N/A";
-					row.insertCell(6).textContent = follower.following_count || "N/A";
-					row.insertCell(7).textContent =
+					row.insertCell(5).textContent = follower.is_bot;
+					row.insertCell(6).textContent = follower.follower_count || "N/A";
+					row.insertCell(7).textContent = follower.following_count || "N/A";
+					row.insertCell(8).textContent =
 						follower.days_since_joining !== undefined
 							? parseInt(follower.days_since_joining)
 							: "N/A";
-					row.insertCell(8).textContent = follower.verified ? "Yes" : "No";
+					row.insertCell(9).textContent = follower.verified ? "Yes" : "No";
 				});
 			}
 
@@ -389,6 +319,7 @@
 				sortBy = "follower_order",
 				sortDirection = "asc"
 			) {
+				document.getElementById("loadingSpinner").style.display = "flex";
 				const response = await fetch(
 					`/api/followers?sort_by=${sortBy}&sort_direction=${sortDirection}`
 				);
@@ -415,16 +346,35 @@
 				const verifiedCount = followers.filter((f) => f.verified).length;
 				const unverifiedCount = followers.length - verifiedCount;
 
-				updateCharts(highQuality, lowQuality, verifiedCount, unverifiedCount);
+				followers = data;
 				renderTable();
+				updateCharts();
+				document.getElementById("loadingSpinner").style.display = "none";
 			}
 
-			function updateCharts(
-				highQuality,
-				lowQuality,
-				verifiedCount,
-				unverifiedCount
-			) {
+			function updateCharts(data = followers) {
+				// Ensure data is an array
+				if (!Array.isArray(data)) {
+					console.error("updateCharts received invalid data:", data);
+					data = []; // Use an empty array to avoid further errors
+				}
+
+				// Calculate highQuality, lowQuality, verifiedCount, and unverifiedCount from the data
+				const qualityScores = data
+					.map((f) => f.quality_score)
+					.filter(
+						(score) => score !== undefined && score !== null && !isNaN(score)
+					);
+
+				const medianScore = calculateMedian(qualityScores);
+				const highQuality = qualityScores.filter(
+					(score) => score > medianScore
+				).length;
+				const lowQuality = qualityScores.length - highQuality;
+
+				const verifiedCount = data.filter((f) => f.verified === true).length;
+				const unverifiedCount = data.length - verifiedCount;
+
 				// Destroy existing charts if they exist
 				if (
 					window.qualityChart &&
@@ -578,6 +528,11 @@
 				const imageHeader = document.createElement("th");
 				imageHeader.textContent = "Profile";
 				headerRow.insertBefore(imageHeader, headerRow.children[1]);
+
+				// Add event listener for search input
+				document
+					.getElementById("searchInput")
+					.addEventListener("input", searchFollowers);
 
 				// Initialize charts with dummy data
 				updateCharts(0, 0, 0, 0);

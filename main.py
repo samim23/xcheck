@@ -145,7 +145,7 @@ async def is_logged_in(page):
     return page.url.startswith("https://x.com/home") or await page.locator('a[data-testid="AppTabBar_Home_Link"]').count() > 0
 
 async def background_scrape(username: str, max_followers: int):
-    global scraping_status
+    global scraping_status, persistent_context, X_USERNAME, X_PASSWORD
     scraping_status = {
         "status": "running",
         "progress": 0,
@@ -252,12 +252,16 @@ def save_to_mongodb(followers_df):
     print("Saving followers data to MongoDB...")
     followers_df['quality_score'] = calculate_quality_score(followers_df)
     
-    for _, follower in followers_df.iterrows():
+    followers_list = followers_df.to_dict('records')
+    followers_with_bot_info = detect_bots(followers_list)
+    
+    for follower in followers_with_bot_info:
         followers_collection.update_one(
             {'handle': follower['handle']},
-            {'$set': follower.to_dict()},
+            {'$set': follower},
             upsert=True
         )
+
 
 async def extract_detailed_follower_data(page, handle):
     try:
@@ -359,6 +363,37 @@ def analyze_sentiment(text):
     sia = SentimentIntensityAnalyzer()
     return sia.polarity_scores(text)['compound']
 
+def detect_bots(followers):
+    for follower in followers:
+        bot_score = 0
+        
+        # Check for default profile picture
+        if follower.get('profile_image_url', '').endswith('default_profile_normal.png'):
+            bot_score += 2
+        
+        # Check follower to following ratio
+        follower_count = int(follower.get('follower_count', 0))
+        following_count = int(follower.get('following_count', 0))
+        if following_count > 0 and follower_count / following_count < 0.01:
+            bot_score += 2
+        
+        # Check account age
+        days_since_joining = int(follower.get('days_since_joining', 0))
+        if days_since_joining < 30:
+            bot_score += 1
+        
+        # Check for suspicious patterns in bio
+        bio = follower.get('bio', '').lower()
+        suspicious_keywords = ['follow back', 'follow for follow', 'auto follow']
+        if any(keyword in bio for keyword in suspicious_keywords):
+            bot_score += 2
+        
+        # Set is_bot flag based on bot_score
+        follower['is_bot'] = bot_score >= 4
+        follower['bot_score'] = bot_score
+
+    return followers
+
 def preprocess_follower_data(df):
     def convert_count(count):
         if pd.isna(count) or count == '':
@@ -424,6 +459,9 @@ def calculate_quality_score(df):
     
     return score
 
+# Global variable to store the persistent context
+persistent_context = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -437,8 +475,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Global variable to store the persistent context
-persistent_context = None
 
 # Serve static files (like index.html)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -492,4 +528,4 @@ async def get_scrape_status():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
