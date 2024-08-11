@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Twitter Follower Analysis</title>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				line-height: 1.6;
+				color: #333;
+				max-width: 1200px;
+				margin: 0 auto;
+				padding: 20px;
+			}
+			h1,
+			h2 {
+				color: #1da1f2;
+			}
+			#followerTable {
+				width: 100%;
+				border-collapse: collapse;
+			}
+			#followerTable th,
+			#followerTable td {
+				border: 1px solid #ddd;
+				padding: 8px;
+				text-align: left;
+			}
+			#followerTable th {
+				background-color: #1da1f2;
+				color: white;
+			}
+			.charts-container {
+				display: flex;
+				justify-content: space-between;
+				margin-bottom: 120px;
+			}
+			.chart-container {
+				width: 48%;
+				height: 300px;
+			}
+			#debug {
+				background-color: #f0f0f0;
+				padding: 10px;
+				margin-top: 20px;
+				/* display: none; */
+			}
+			.profile-link {
+				color: #1da1f2;
+				text-decoration: none;
+			}
+			.profile-link:hover {
+				text-decoration: underline;
+			}
+			.sortable {
+				cursor: pointer;
+			}
+			.sortable::after {
+				content: " ↕️";
+				font-size: 0.8em;
+			}
+			.sortable.asc::after {
+				content: " ↑";
+			}
+			.sortable.desc::after {
+				content: " ↓";
+			}
+			#scrapeControls {
+				margin-bottom: 20px;
+				padding: 10px;
+				background-color: #f0f0f0;
+				border-radius: 5px;
+			}
+			#scrapeProgress {
+				margin-top: 10px;
+				display: none;
+			}
+			progress {
+				width: 100%;
+			}
+
+			.card {
+				background-color: #ffffff;
+				border-radius: 8px;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+				padding: 20px;
+				margin-bottom: 20px;
+			}
+
+			.card-title {
+				font-size: 1.5rem;
+				font-weight: bold;
+				margin-bottom: 1rem;
+				color: #1da1f2;
+				margin-top: 0px;
+			}
+
+			.form-group {
+				margin-bottom: 1rem;
+			}
+
+			.form-input {
+				width: 100%;
+				padding: 0.5rem;
+				border: 1px solid #e1e8ed;
+				border-radius: 4px;
+				font-size: 1rem;
+			}
+
+			.btn {
+				padding: 0.5rem 1rem;
+				border: none;
+				border-radius: 4px;
+				font-size: 1rem;
+				cursor: pointer;
+				transition: background-color 0.3s;
+			}
+
+			.btn-primary {
+				background-color: #1da1f2;
+				color: white;
+			}
+
+			.btn-primary:hover {
+				background-color: #1a91da;
+			}
+
+			.btn-success {
+				background-color: #17bf63;
+				color: white;
+			}
+
+			.btn-success:hover {
+				background-color: #15a857;
+			}
+
+			.mt-4 {
+				margin-top: 1rem;
+			}
+
+			.w-full {
+				width: 100%;
+			}
+
+			.font-bold {
+				font-weight: bold;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Twitter Follower Analysis</h1>
+
+		<div id="scrapeControls" class="card">
+			<h2 class="card-title">X Account Management</h2>
+			<div class="form-group">
+				<label for="xUsername">X Username:</label>
+				<input
+					type="text"
+					id="xUsername"
+					class="form-input"
+					placeholder="Enter X username"
+				/>
+			</div>
+			<div class="form-group">
+				<label for="xPassword">X Password:</label>
+				<input
+					type="password"
+					id="xPassword"
+					class="form-input"
+					placeholder="Enter X password"
+				/>
+			</div>
+			<button onclick="updateCredentials()" class="btn btn-primary">
+				Update Credentials
+			</button>
+
+			<h2 class="card-title mt-4">Start New Scrape</h2>
+			<div class="form-group">
+				<label for="usernameInput">Target Username:</label>
+				<input
+					type="text"
+					id="usernameInput"
+					class="form-input"
+					placeholder="Enter target X username"
+				/>
+			</div>
+			<div class="form-group">
+				<label for="maxFollowersInput">Max Followers:</label>
+				<input
+					type="number"
+					id="maxFollowersInput"
+					class="form-input"
+					placeholder="Enter max followers to scrape"
+				/>
+			</div>
+			<button onclick="startScrape()" class="btn btn-success">
+				Start Scrape
+			</button>
+
+			<div id="scrapeProgress" class="mt-4" style="display: none">
+				<p>Status: <span id="scrapeStatus" class="font-bold"></span></p>
+				<progress
+					id="scrapeProgressBar"
+					value="0"
+					max="100"
+					class="w-full"
+				></progress>
+			</div>
+		</div>
+
+		<div class="charts-container">
+			<div class="chart-container">
+				<h2>Follower Quality Distribution</h2>
+				<canvas id="qualityChart"></canvas>
+			</div>
+			<div class="chart-container">
+				<h2>Verified Account Distribution</h2>
+				<canvas id="verifiedChart"></canvas>
+			</div>
+		</div>
+
+		<h2>Follower Data</h2>
+		<table id="followerTable">
+			<thead>
+				<tr>
+					<th>Handle</th>
+					<th>Name</th>
+					<th class="sortable" data-sort="quality_score">Quality Score</th>
+					<th class="sortable" data-sort="follower_count">Follower Count</th>
+					<th class="sortable" data-sort="following_count">Following Count</th>
+					<th class="sortable" data-sort="account_age_days">
+						Account Age (days)
+					</th>
+					<th>Verified</th>
+				</tr>
+			</thead>
+			<tbody id="followerTableBody"></tbody>
+		</table>
+
+		<div id="debug">
+			<h3>Debug Information</h3>
+			<pre id="debugInfo"></pre>
+		</div>
+
+		<script>
+			function calculateMedian(numbers) {
+				const sorted = numbers.slice().sort((a, b) => a - b);
+				const middle = Math.floor(sorted.length / 2);
+
+				if (sorted.length % 2 === 0) {
+					return (sorted[middle - 1] + sorted[middle]) / 2;
+				}
+
+				return sorted[middle];
+			}
+
+			let followers = [];
+			let currentSort = { column: null, direction: "asc" };
+
+			function sortFollowers(column) {
+				if (column === currentSort.column) {
+					// If clicking the same column, reverse the sort direction
+					currentSort.direction =
+						currentSort.direction === "asc" ? "desc" : "asc";
+				} else {
+					// If clicking a new column, set it as the current sort with ascending direction
+					currentSort.column = column;
+					currentSort.direction = "asc";
+				}
+
+				followers.sort((a, b) => {
+					let valueA = a[column];
+					let valueB = b[column];
+
+					// Special handling for account age
+					if (column === "account_age_days") {
+						valueA =
+							a.days_since_joining !== undefined
+								? parseInt(a.days_since_joining)
+								: -1;
+						valueB =
+							b.days_since_joining !== undefined
+								? parseInt(b.days_since_joining)
+								: -1;
+					} else {
+						// Convert to numbers if possible for other columns
+						if (!isNaN(valueA)) valueA = parseFloat(valueA);
+						if (!isNaN(valueB)) valueB = parseFloat(valueB);
+
+						// Handle string comparisons
+						if (typeof valueA === "string") valueA = valueA.toLowerCase();
+						if (typeof valueB === "string") valueB = valueB.toLowerCase();
+					}
+
+					if (valueA < valueB) return currentSort.direction === "asc" ? -1 : 1;
+					if (valueA > valueB) return currentSort.direction === "asc" ? 1 : -1;
+					return 0;
+				});
+
+				renderTable();
+				updateSortIndicators();
+			}
+
+			function updateSortIndicators() {
+				document.querySelectorAll("th.sortable").forEach((th) => {
+					th.classList.remove("asc", "desc");
+					if (th.dataset.sort === currentSort.column) {
+						th.classList.add(currentSort.direction);
+					}
+				});
+			}
+
+			function renderTable() {
+				const tableBody = document.getElementById("followerTableBody");
+				tableBody.innerHTML = "";
+				followers.slice(0, 100).forEach((follower) => {
+					const row = tableBody.insertRow();
+
+					// Add profile image cell
+					const imageCell = row.insertCell(0);
+					const img = document.createElement("img");
+					img.src = follower.profile_image_url || "/path/to/default/image.png";
+					img.alt = "Profile picture";
+					img.style.width = "32px";
+					img.style.height = "32px";
+					img.style.borderRadius = "50%";
+					imageCell.appendChild(img);
+
+					const handleCell = row.insertCell(1);
+					const handleLink = document.createElement("a");
+					handleLink.href = `https://twitter.com/${follower.handle.replace(
+						"@",
+						""
+					)}`;
+					handleLink.textContent = follower.handle || "N/A";
+					handleLink.className = "profile-link";
+					handleLink.target = "_blank";
+					handleLink.rel = "noopener noreferrer";
+					handleCell.appendChild(handleLink);
+
+					row.insertCell(2).textContent = follower.name || "N/A";
+					row.insertCell(3).textContent =
+						typeof follower.quality_score === "number"
+							? follower.quality_score.toFixed(2)
+							: "N/A";
+					row.insertCell(4).textContent = follower.follower_count || "N/A";
+					row.insertCell(5).textContent = follower.following_count || "N/A";
+					row.insertCell(6).textContent =
+						follower.days_since_joining !== undefined
+							? parseInt(follower.days_since_joining)
+							: "N/A";
+					row.insertCell(7).textContent = follower.verified ? "Yes" : "No";
+				});
+			}
+
+			fetch("/api/followers")
+				.then((response) => response.json())
+				.then((data) => {
+					followers = data;
+					console.log("First follower object:", followers[0]);
+					document.getElementById("debugInfo").textContent = JSON.stringify(
+						followers[0],
+						null,
+						2
+					);
+
+					const qualityScores = followers
+						.map((f) => f.quality_score)
+						.filter((score) => score !== undefined && score !== null);
+					console.log("Quality scores:", qualityScores);
+
+					const medianScore = calculateMedian(qualityScores);
+					const highQuality = qualityScores.filter(
+						(score) => score > medianScore
+					).length;
+					const lowQuality = qualityScores.length - highQuality;
+
+					const verifiedCount = followers.filter((f) => f.verified).length;
+					const unverifiedCount = followers.length - verifiedCount;
+
+					new Chart(document.getElementById("qualityChart"), {
+						type: "pie",
+						data: {
+							labels: ["High Quality", "Low Quality"],
+							datasets: [
+								{
+									data: [highQuality, lowQuality],
+									backgroundColor: ["#1DA1F2", "#AAB8C2"],
+								},
+							],
+						},
+					});
+
+					new Chart(document.getElementById("verifiedChart"), {
+						type: "pie",
+						data: {
+							labels: ["Verified", "Not Verified"],
+							datasets: [
+								{
+									data: [verifiedCount, unverifiedCount],
+									backgroundColor: ["#1DA1F2", "#AAB8C2"],
+								},
+							],
+						},
+					});
+
+					sortFollowers(currentSort.column);
+
+					document.querySelectorAll("th.sortable").forEach((th) => {
+						th.addEventListener("click", () => sortFollowers(th.dataset.sort));
+					});
+				});
+
+			async function startScrape() {
+				const username = document.getElementById("usernameInput").value;
+				const maxFollowers = document.getElementById("maxFollowersInput").value;
+
+				if (!username || !maxFollowers) {
+					alert("Please enter both username and max followers");
+					return;
+				}
+
+				const response = await fetch("/api/scrape", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						username,
+						max_followers: parseInt(maxFollowers),
+					}),
+				});
+
+				if (response.ok) {
+					document.getElementById("scrapeProgress").style.display = "block";
+					document.getElementById("scrapeStatus").textContent = "Starting...";
+					document.getElementById("scrapeProgressBar").value = 0;
+					checkScrapeStatus();
+				} else {
+					alert("Failed to start scrape");
+				}
+			}
+
+			async function checkScrapeStatus() {
+				const response = await fetch("/api/scrape-status");
+				const status = await response.json();
+
+				document.getElementById("scrapeStatus").textContent = status.status;
+				if (status.status === "running") {
+					const progress = (status.progress / status.total) * 100;
+					document.getElementById("scrapeProgressBar").value = progress;
+					setTimeout(checkScrapeStatus, 1000);
+				} else if (status.status === "completed") {
+					document.getElementById("scrapeProgressBar").value = 100;
+					alert("Scrape completed!");
+					fetchFollowerData();
+				} else if (status.status === "error") {
+					document.getElementById("scrapeProgressBar").value = 100;
+					document.getElementById("scrapeStatus").textContent =
+						"Error: " + status.message;
+					alert(`Scrape failed: ${status.message}`);
+				}
+			}
+
+			async function fetchFollowerData() {
+				const response = await fetch("/api/followers");
+				const data = await response.json();
+				followers = data;
+				console.log("First follower object:", followers[0]);
+				document.getElementById("debugInfo").textContent = JSON.stringify(
+					followers[0],
+					null,
+					2
+				);
+
+				const qualityScores = followers
+					.map((f) => f.quality_score)
+					.filter((score) => score !== undefined && score !== null);
+				console.log("Quality scores:", qualityScores);
+
+				const medianScore = calculateMedian(qualityScores);
+				const highQuality = qualityScores.filter(
+					(score) => score > medianScore
+				).length;
+				const lowQuality = qualityScores.length - highQuality;
+
+				const verifiedCount = followers.filter((f) => f.verified).length;
+				const unverifiedCount = followers.length - verifiedCount;
+
+				updateCharts(highQuality, lowQuality, verifiedCount, unverifiedCount);
+				sortFollowers(currentSort.column);
+			}
+
+			function updateCharts(
+				highQuality,
+				lowQuality,
+				verifiedCount,
+				unverifiedCount
+			) {
+				new Chart(document.getElementById("qualityChart"), {
+					type: "pie",
+					data: {
+						labels: ["High Quality", "Low Quality"],
+						datasets: [
+							{
+								data: [highQuality, lowQuality],
+								backgroundColor: ["#1DA1F2", "#AAB8C2"],
+							},
+						],
+					},
+				});
+
+				new Chart(document.getElementById("verifiedChart"), {
+					type: "pie",
+					data: {
+						labels: ["Verified", "Not Verified"],
+						datasets: [
+							{
+								data: [verifiedCount, unverifiedCount],
+								backgroundColor: ["#1DA1F2", "#AAB8C2"],
+							},
+						],
+					},
+				});
+			}
+
+			async function fetchCredentials() {
+				const response = await fetch("/api/credentials");
+				const data = await response.json();
+				document.getElementById("xUsername").value = data.username;
+				document.getElementById("xPassword").value = data.password;
+			}
+
+			async function updateCredentials() {
+				const username = document.getElementById("xUsername").value;
+				const password = document.getElementById("xPassword").value;
+
+				const response = await fetch("/api/credentials", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ username, password }),
+				});
+
+				const result = await response.json();
+				alert(result.message);
+			}
+
+			// event listeners
+			document.addEventListener("DOMContentLoaded", () => {
+				fetchCredentials();
+				const headerRow = document.querySelector("#followerTable thead tr");
+				const imageHeader = document.createElement("th");
+				imageHeader.textContent = "Profile";
+				headerRow.insertBefore(imageHeader, headerRow.firstChild);
+
+				fetchFollowerData();
+				document.querySelectorAll("th.sortable").forEach((th) => {
+					th.addEventListener("click", () => sortFollowers(th.dataset.sort));
+				});
+			});
+		</script>
+	</body>
+</html>
