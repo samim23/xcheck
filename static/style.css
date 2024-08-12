@@ -24,6 +24,7 @@ h2 {
 #followerTable {
     width: 100%;
     border-collapse: collapse;
+    margin-bottom: 100px;
 }
 #followerTable th,
 #followerTable td {
@@ -35,15 +36,7 @@ h2 {
     background-color: #1da1f2;
     color: white;
 }
-.charts-container {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 120px;
-}
-.chart-container {
-    width: 48%;
-    height: 300px;
-}
+
 #debug {
     background-color: #f0f0f0;
     padding: 10px;
@@ -467,4 +460,49 @@ tr:hover {
         width: 100%;
         margin-bottom: 10px;
     }
+}
+
+
+
+
+
+.charts-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 120px;
+}
+.chart-container {
+    width: 48%;
+    height: 300px;
+}
+
+.charts-section {
+    margin-bottom: 20px;
+}
+
+.charts-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: #1da1f2;
+    margin-bottom: 10px;
+}
+
+.caret-icon {
+    margin-left: 10px;
+    transition: transform 0.3s ease;
+}
+
+.charts-toggle.open .caret-icon {
+    transform: rotate(180deg);
+}
+
+.charts-container {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

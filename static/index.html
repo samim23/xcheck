@@ -87,16 +87,6 @@
 			</div>
 		</div>
 
-		<div class="charts-container">
-			<div class="chart-container">
-				<h2>Follower Quality Distribution</h2>
-				<canvas id="qualityChart"></canvas>
-			</div>
-			<div class="chart-container">
-				<h2>Verified Account Distribution</h2>
-				<canvas id="verifiedChart"></canvas>
-			</div>
-		</div>
 		<h2>Followers</h2>
 
 		<div class="search-filter-container">
@@ -154,6 +144,31 @@
 			</div>
 		</div>
 
+		<div class="charts-section">
+			<h2 class="charts-toggle" onclick="toggleCharts()">
+				Charts
+				<svg class="caret-icon" width="10" height="10" viewBox="0 0 10 10">
+					<path
+						d="M1 3L5 7L9 3"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+					/>
+				</svg>
+			</h2>
+			<div id="chartsContainer" class="charts-container" style="display: none">
+				<div class="chart-container">
+					<h3>Follower Quality Distribution</h3>
+					<canvas id="qualityChart"></canvas>
+				</div>
+				<div class="chart-container">
+					<h3>Verified Account Distribution</h3>
+					<canvas id="verifiedChart"></canvas>
+				</div>
+			</div>
+		</div>
+
 		<table id="followerTable">
 			<thead>
 				<tr>
@@ -177,6 +192,25 @@
 		</div>
 
 		<script>
+			function toggleCharts() {
+				const chartsContainer = document.getElementById("chartsContainer");
+				const chartsToggle = document.querySelector(".charts-toggle");
+
+				if (chartsContainer.style.display === "none") {
+					chartsContainer.style.display = "flex";
+					chartsToggle.classList.add("open");
+
+					// Only update charts if they haven't been rendered yet
+					if (!window.chartsRendered) {
+						updateCharts();
+						window.chartsRendered = true;
+					}
+				} else {
+					chartsContainer.style.display = "none";
+					chartsToggle.classList.remove("open");
+				}
+			}
+
 			function toggleStatusMessages() {
 				const statusMessages = document.getElementById("statusMessages");
 				statusMessages.style.display =
@@ -447,6 +481,8 @@
 						],
 					},
 				});
+				// Set the flag to indicate charts have been rendered
+				window.chartsRendered = true;
 			}
 
 			async function startScrape() {
@@ -579,6 +615,9 @@
 				document.querySelectorAll("th.sortable").forEach((th) => {
 					th.addEventListener("click", () => sortFollowers(th.dataset.sort));
 				});
+
+				// Initialize chartsRendered flag
+				window.chartsRendered = false;
 			});
 
 			function toggleFilters() {
