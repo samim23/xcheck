@@ -18,177 +18,199 @@
 			<p>Loading...</p>
 		</div>
 
-		<div class="header">XCHECK</div>
+		<div class="main-container">
+			<button id="sidebarToggle" class="sidebar-toggle">☰</button>
 
-		<div id="scrapeControls" class="card">
-			<div class="card-section">
-				<h2 class="card-title">X Account Details</h2>
-				<div class="form-group">
-					<label for="xUsername">Username</label>
-					<input
-						type="text"
-						id="xUsername"
-						class="form-input"
-						placeholder="Enter X username"
-					/>
+			<aside id="sidebar" class="sidebar">
+				<div class="card">
+					<div class="header">XCHECK</div>
+					<div class="card-section">
+						<h2 class="card-title">X Account Details</h2>
+						<div class="form-group">
+							<label for="xUsername">Username</label>
+							<input
+								type="text"
+								id="xUsername"
+								class="form-input"
+								placeholder="Enter X username"
+							/>
+						</div>
+						<div class="form-group">
+							<label for="xPassword">Password</label>
+							<input
+								type="password"
+								id="xPassword"
+								class="form-input"
+								placeholder="Enter X password"
+							/>
+						</div>
+						<button onclick="updateCredentials()" class="btn btn-primary">
+							Update Credentials
+						</button>
+					</div>
+
+					<div class="card-section">
+						<h2 class="card-title">Start New Scrape</h2>
+						<div class="form-group">
+							<label for="usernameInput">Target Username</label>
+							<input
+								type="text"
+								id="usernameInput"
+								class="form-input"
+								placeholder="Enter target X username"
+							/>
+						</div>
+						<div class="form-group">
+							<label for="maxFollowersInput">Max Followers</label>
+							<input
+								type="number"
+								id="maxFollowersInput"
+								class="form-input"
+								placeholder="Enter max followers to scrape"
+							/>
+						</div>
+						<button onclick="startScrape()" class="btn btn-success">
+							Start Scrape
+						</button>
+					</div>
+
+					<div id="scrapeProgress" class="card-section" style="display: none">
+						<h2 class="card-title">Scrape Progress</h2>
+						<p>Status: <span id="scrapeStatus" class="font-bold"></span></p>
+						<progress
+							id="scrapeProgressBar"
+							value="0"
+							max="100"
+							class="w-full"
+						></progress>
+						<button
+							onclick="toggleStatusMessages()"
+							class="btn btn-secondary mt-2"
+						>
+							Toggle Status Messages
+						</button>
+						<div id="statusMessages" class="status-messages"></div>
+					</div>
 				</div>
-				<div class="form-group">
-					<label for="xPassword">Password</label>
-					<input
-						type="password"
-						id="xPassword"
-						class="form-input"
-						placeholder="Enter X password"
-					/>
-				</div>
-				<button onclick="updateCredentials()" class="btn btn-primary">
-					Update Credentials
-				</button>
-			</div>
+			</aside>
 
-			<div class="card-section">
-				<h2 class="card-title">Start New Scrape</h2>
-				<div class="form-group">
-					<label for="usernameInput">Target Username</label>
-					<input
-						type="text"
-						id="usernameInput"
-						class="form-input"
-						placeholder="Enter target X username"
-					/>
-				</div>
-				<div class="form-group">
-					<label for="maxFollowersInput">Max Followers</label>
-					<input
-						type="number"
-						id="maxFollowersInput"
-						class="form-input"
-						placeholder="Enter max followers to scrape"
-					/>
-				</div>
-				<button onclick="startScrape()" class="btn btn-success">
-					Start Scrape
-				</button>
-			</div>
+			<main class="main-content">
+				<h2>Followers</h2>
 
-			<div id="scrapeProgress" class="card-section" style="display: none">
-				<h2 class="card-title">Scrape Progress</h2>
-				<p>Status: <span id="scrapeStatus" class="font-bold"></span></p>
-				<progress
-					id="scrapeProgressBar"
-					value="0"
-					max="100"
-					class="w-full"
-				></progress>
-				<button onclick="toggleStatusMessages()" class="btn btn-secondary mt-2">
-					Toggle Status Messages
-				</button>
-				<div id="statusMessages" class="status-messages"></div>
-			</div>
-		</div>
+				<div class="search-filter-container">
+					<div class="search-box">
+						<input
+							type="text"
+							id="searchInput"
+							placeholder="Search followers..."
+						/>
+						<button onclick="searchFollowers()" class="icon-button">
+							<i class="fas fa-search"></i>
+						</button>
+					</div>
 
-		<h2>Followers</h2>
+					<div class="filter-toggle">
+						<button onclick="toggleFilters()" class="btn btn-secondary">
+							<i class="fas fa-filter"></i> Filters
+						</button>
+					</div>
 
-		<div class="search-filter-container">
-			<div class="search-box">
-				<input type="text" id="searchInput" placeholder="Search followers..." />
-				<button onclick="searchFollowers()" class="icon-button">
-					<i class="fas fa-search"></i>
-				</button>
-			</div>
+					<div id="filterOptions" class="filter-panel">
+						<div class="filter-group">
+							<label for="followerCountFilter">Minimum Followers</label>
+							<input
+								type="number"
+								id="followerCountFilter"
+								min="0"
+								placeholder="e.g., 1000"
+							/>
+						</div>
 
-			<div class="filter-toggle">
-				<button onclick="toggleFilters()" class="btn btn-secondary">
-					<i class="fas fa-filter"></i> Filters
-				</button>
-			</div>
+						<div class="filter-group">
+							<label for="accountAgeFilter">Minimum Account Age (days)</label>
+							<input
+								type="number"
+								id="accountAgeFilter"
+								min="0"
+								placeholder="e.g., 30"
+							/>
+						</div>
 
-			<div id="filterOptions" class="filter-panel">
-				<div class="filter-group">
-					<label for="followerCountFilter">Minimum Followers</label>
-					<input
-						type="number"
-						id="followerCountFilter"
-						min="0"
-						placeholder="e.g., 1000"
-					/>
+						<div class="filter-group">
+							<label for="verificationFilter">Verification Status</label>
+							<select id="verificationFilter">
+								<option value="all">All</option>
+								<option value="verified">Verified</option>
+								<option value="unverified">Unverified</option>
+							</select>
+						</div>
+
+						<div class="filter-actions">
+							<button onclick="applyFilters()" class="btn btn-primary">
+								Apply Filters
+							</button>
+							<button onclick="resetFilters()" class="btn btn-secondary">
+								Reset
+							</button>
+						</div>
+					</div>
 				</div>
 
-				<div class="filter-group">
-					<label for="accountAgeFilter">Minimum Account Age (days)</label>
-					<input
-						type="number"
-						id="accountAgeFilter"
-						min="0"
-						placeholder="e.g., 30"
-					/>
+				<div class="charts-section">
+					<h2 class="charts-toggle" onclick="toggleCharts()">
+						Charts
+						<svg class="caret-icon" width="10" height="10" viewBox="0 0 10 10">
+							<path
+								d="M1 3L5 7L9 3"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+							/>
+						</svg>
+					</h2>
+					<div
+						id="chartsContainer"
+						class="charts-container"
+						style="display: none"
+					>
+						<div class="chart-container">
+							<h3>Follower Quality Distribution</h3>
+							<canvas id="qualityChart"></canvas>
+						</div>
+						<div class="chart-container">
+							<h3>Verified Account Distribution</h3>
+							<canvas id="verifiedChart"></canvas>
+						</div>
+					</div>
 				</div>
 
-				<div class="filter-group">
-					<label for="verificationFilter">Verification Status</label>
-					<select id="verificationFilter">
-						<option value="all">All</option>
-						<option value="verified">Verified</option>
-						<option value="unverified">Unverified</option>
-					</select>
-				</div>
+				<table id="followerTable">
+					<thead>
+						<tr>
+							<th>Handle</th>
+							<th>Name</th>
+							<th class="sortable" data-sort="quality_score">Quality Score</th>
+							<th class="sortable" data-sort="follower_count">
+								Follower Count
+							</th>
+							<th class="sortable" data-sort="following_count">
+								Following Count
+							</th>
+							<th class="sortable" data-sort="account_age_days">
+								Account Age (days)
+							</th>
+							<th>Verified</th>
+						</tr>
+					</thead>
+					<tbody id="followerTableBody"></tbody>
+				</table>
 
-				<div class="filter-actions">
-					<button onclick="applyFilters()" class="btn btn-primary">
-						Apply Filters
-					</button>
-					<button onclick="resetFilters()" class="btn btn-secondary">
-						Reset
-					</button>
+				<div id="debug">
+					<h3>Debug Information</h3>
+					<pre id="debugInfo"></pre>
 				</div>
-			</div>
-		</div>
-
-		<div class="charts-section">
-			<h2 class="charts-toggle" onclick="toggleCharts()">
-				Charts
-				<svg class="caret-icon" width="10" height="10" viewBox="0 0 10 10">
-					<path
-						d="M1 3L5 7L9 3"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-					/>
-				</svg>
-			</h2>
-			<div id="chartsContainer" class="charts-container" style="display: none">
-				<div class="chart-container">
-					<h3>Follower Quality Distribution</h3>
-					<canvas id="qualityChart"></canvas>
-				</div>
-				<div class="chart-container">
-					<h3>Verified Account Distribution</h3>
-					<canvas id="verifiedChart"></canvas>
-				</div>
-			</div>
-		</div>
-
-		<table id="followerTable">
-			<thead>
-				<tr>
-					<th>Handle</th>
-					<th>Name</th>
-					<th class="sortable" data-sort="quality_score">Quality Score</th>
-					<th class="sortable" data-sort="follower_count">Follower Count</th>
-					<th class="sortable" data-sort="following_count">Following Count</th>
-					<th class="sortable" data-sort="account_age_days">
-						Account Age (days)
-					</th>
-					<th>Verified</th>
-				</tr>
-			</thead>
-			<tbody id="followerTableBody"></tbody>
-		</table>
-
-		<div id="debug">
-			<h3>Debug Information</h3>
-			<pre id="debugInfo"></pre>
+			</main>
 		</div>
 
 		<script>
@@ -618,6 +640,46 @@
 
 				// Initialize chartsRendered flag
 				window.chartsRendered = false;
+
+				// Sidebar control
+				const sidebar = document.getElementById("sidebar");
+				const sidebarToggle = document.getElementById("sidebarToggle");
+				const mainContent = document.querySelector(".main-content");
+
+				function toggleSidebar() {
+					sidebar.classList.toggle("open");
+					if (sidebar.classList.contains("open")) {
+						mainContent.style.marginLeft = "300px";
+					} else {
+						mainContent.style.marginLeft = "0";
+					}
+				}
+
+				sidebarToggle.addEventListener("click", toggleSidebar);
+
+				// Close sidebar when clicking outside of it on mobile
+				document.addEventListener("click", function (event) {
+					const isClickInsideSidebar = sidebar.contains(event.target);
+					const isClickOnToggleButton = sidebarToggle.contains(event.target);
+					if (
+						!isClickInsideSidebar &&
+						!isClickOnToggleButton &&
+						window.innerWidth <= 768
+					) {
+						sidebar.classList.remove("open");
+						mainContent.style.marginLeft = "0";
+					}
+				});
+
+				// Adjust layout on window resize
+				window.addEventListener("resize", function () {
+					if (window.innerWidth > 768) {
+						sidebar.classList.remove("open");
+						mainContent.style.marginLeft = "300px";
+					} else {
+						mainContent.style.marginLeft = "0";
+					}
+				});
 			});
 
 			function toggleFilters() {

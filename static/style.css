@@ -7,15 +7,12 @@ body {
     padding: 0px 10px;
 }
 .header {
-    padding: 10px 0px;
     font-size: large;
     font-weight: bold;
-    margin-top: 0px;
-    border-bottom: 1px solid lightgray;
-    position: sticky;
-    top:0;
-    background-color: white;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
     color: blue;
+    border-bottom: 1px solid lightgray;
 }
 h1,
 h2 {
@@ -63,12 +60,7 @@ h2 {
 .sortable.desc::after {
     content: " ↓";
 }
-#scrapeControls {
-    margin-bottom: 20px;
-    padding: 10px;
-    background-color: #f0f0f0;
-    border-radius: 5px;
-}
+
 #scrapeProgress {
     margin-top: 10px;
     display: none;
@@ -77,16 +69,10 @@ progress {
     width: 100%;
 }
 .card {
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 0;
-    margin-bottom: 20px;
-    overflow: hidden;
 }
 
 .card-section {
-    padding-bottom: 20px;
+    padding-bottom: 30px;
 }
 
 .card-section:last-child {
@@ -505,4 +491,81 @@ tr:hover {
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+
+
+
+
+
+
+
+
+.main-container {
+    display: flex;
+    position: relative;
+}
+
+.sidebar {
+    width: 300px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    background-color: #f8f8f8;
+    overflow-y: auto;
+    transition: transform 0.3s ease-in-out;
+    z-index: 1000;
+
+    padding: 10px;
+    background-color: #f0f0f0;
+}
+
+.main-content {
+    flex-grow: 1;
+    margin-left: 300px;
+    padding: 20px;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    z-index: 1001;
+    background-color: #1da1f2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .sidebar-toggle {
+        display: block;
+    }
+}
+
+/* Adjust the card styles for the sidebar */
+.sidebar .card {
+    margin-bottom: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.sidebar .card-section {
+    padding-right: 20px;
 }
