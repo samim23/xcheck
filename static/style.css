@@ -2,7 +2,6 @@ body {
     font-family: Arial, sans-serif;
     line-height: 1.6;
     color: #333;
-    max-width: 1200px;
     margin: 0 auto;
     padding: 0px 10px;
 }
@@ -72,7 +71,9 @@ progress {
 }
 
 .card-section {
-    padding-bottom: 30px;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid lightgray;
 }
 
 .card-section:last-child {
@@ -319,8 +320,9 @@ tr:hover {
     background-color: #f5f8fa;
     border-radius: 8px;
     padding: 10px;
+    padding-bottom: 0px;
     margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid lightgray;
 }
 
 .search-box {
@@ -347,9 +349,15 @@ tr:hover {
     color: white;
     border: none;
     border-radius: 0 20px 20px 0;
-    padding: 10px 15px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+    padding-right: 12px;
     cursor: pointer;
     transition: background-color 0.3s;
+    display: flex; 
+    justify-items: center;
+    text-align: center;
 }
 
 .search-box .icon-button:hover {
@@ -471,7 +479,7 @@ tr:hover {
     display: flex;
     align-items: center;
     color: #1da1f2;
-    margin-bottom: 10px;
+    margin-left: auto;
 }
 
 .caret-icon {
@@ -511,19 +519,18 @@ tr:hover {
     height: 100vh;
     position: fixed;
     left: 0;
-    background-color: #f8f8f8;
     overflow-y: auto;
     transition: transform 0.3s ease-in-out;
     z-index: 1000;
-
+    border-right:  1px solid lightgray;
     padding: 10px;
-    background-color: #f0f0f0;
+    background-color: #f3f3f3;
 }
 
 .main-content {
     flex-grow: 1;
     margin-left: 300px;
-    padding: 20px;
+    padding: 10px 20px;
     transition: margin-left 0.3s ease-in-out;
 }
 
@@ -568,4 +575,22 @@ tr:hover {
 
 .sidebar .card-section {
     padding-right: 20px;
+}
+
+
+.filter-section {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.filter-section h2 {
+    margin-top: 0;
+    margin-bottom: 0;
+   
+}
+.filter-section .form-group {
+    font-size: 18px;
+    margin: 0px;
+    margin-top: 5px;
+
 }

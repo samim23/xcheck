@@ -147,12 +147,54 @@ async def login_to_x(page, username, password):
 async def is_logged_in(page):
     return page.url.startswith("https://x.com/home") or await page.locator('a[data-testid="AppTabBar_Home_Link"]').count() > 0
 
-async def background_scrape(username: str, max_followers: int):
+
+async def extract_detailed_account_data(page, handle):
+    try:
+        await page.goto(f'https://x.com/{handle}')
+        await page.wait_for_selector('div[data-testid="UserName"]', timeout=10000)
+
+        bio = await page.query_selector('div[data-testid="UserDescription"]')
+        bio = await bio.inner_text() if bio else ""
+
+        follower_count_element = await page.query_selector('a[href$="/verified_followers"] > span > span')
+        follower_count = "0"
+        if follower_count_element:
+            follower_count = await follower_count_element.inner_text()
+
+        following_count_element = await page.query_selector('a[href$="/following"] > span > span')
+        following_count = "0"
+        if following_count_element:
+            following_count = await following_count_element.inner_text()
+
+        join_date = await page.query_selector('span[data-testid="UserJoinDate"]')
+        join_date = (await join_date.inner_text()).replace("Joined ", "") if join_date else "Unknown"
+
+        verified = await page.query_selector('svg[data-testid="icon-verified"]') is not None
+
+        profile_image_element = await page.query_selector('img[alt="Opens profile photo"]')
+        profile_image_url = await profile_image_element.get_attribute('src') if profile_image_element else None
+
+        print(f"Debug - {handle}: Followers: {follower_count}, Following: {following_count}")
+        await asyncio.sleep(RATE_LIMIT_DELAY)  # Add rate limiting delay
+
+        return {
+            'bio': bio,
+            'follower_count': follower_count,
+            'following_count': following_count,
+            'join_date': join_date,
+            'verified': verified,
+            'profile_image_url': profile_image_url
+        }
+    except Exception as e:
+        print(f"Failed to extract detailed data for {handle}: {str(e)}")
+        return None
+
+async def background_scrape(username: str, max_accounts: int, scrape_followers: bool, scrape_following: bool):
     global scraping_status, persistent_context, X_USERNAME, X_PASSWORD
     scraping_status = {
         "status": "running",
         "progress": 0,
-        "total": max_followers,
+        "total": max_accounts * (scrape_followers + scrape_following),
         "messages": ["Starting scrape..."]
     }
 
@@ -167,39 +209,48 @@ async def background_scrape(username: str, max_followers: int):
             await login_to_x(page, X_USERNAME, X_PASSWORD)
             scraping_status["messages"].append("Logged in successfully.")
             
-            followers = await scrape_follower_list(page, username, max_followers)
-            if followers:
-                scraping_status["messages"].append(f"Scraped basic data for {len(followers)} followers.")
-                scraping_status["messages"].append("Starting to enrich follower data...")
+            all_data = []
+            
+            if scrape_followers:
+                followers = await scrape_list(page, username, max_accounts, "followers")
+                all_data.extend(followers)
+            
+            if scrape_following:
+                following = await scrape_list(page, username, max_accounts, "following")
+                all_data.extend(following)
+            
+            if all_data:
+                scraping_status["messages"].append(f"Scraped basic data for {len(all_data)} accounts.")
+                scraping_status["messages"].append("Starting to enrich account data...")
                 
-                enriched_followers = []
-                for index, follower in enumerate(followers, 1):
-                    detailed_data = await extract_detailed_follower_data(page, follower['handle'])
+                enriched_data = []
+                for index, account in enumerate(all_data, 1):
+                    detailed_data = await extract_detailed_account_data(page, account['handle'])
                     if detailed_data:
-                        enriched_follower = {**follower, **detailed_data}
-                        enriched_followers.append(enriched_follower)
+                        enriched_account = {**account, **detailed_data}
+                        enriched_data.append(enriched_account)
                         
-                        # Save partial results every 10 followers
+                        # Save partial results every 10 accounts
                         if index % 10 == 0:
-                            partial_df = pd.DataFrame(enriched_followers)
+                            partial_df = pd.DataFrame(enriched_data)
                             save_to_mongodb(partial_df)
                         
                         # Update scraping status
                         scraping_status["progress"] = index
-                        scraping_status["messages"].append(f"Scraped detailed data for {index}/{len(followers)} ({follower['handle']})")
+                        scraping_status["messages"].append(f"Scraped detailed data for {index}/{len(all_data)} ({account['handle']})")
                         
                         # Log progress in console
-                        print(f"Scraped {index}/{len(followers)} (@{follower['handle']})")
+                        print(f"Scraped {index}/{len(all_data)} (@{account['handle']})")
                     
                     await asyncio.sleep(1)  # Add a delay to avoid rate limiting
 
                 # Save final results
-                df_followers = pd.DataFrame(enriched_followers)
-                save_to_mongodb(df_followers)
+                df_accounts = pd.DataFrame(enriched_data)
+                save_to_mongodb(df_accounts)
                 scraping_status["messages"].append("Saved all data to MongoDB.")
             
             scraping_status["status"] = "completed"
-            scraping_status["progress"] = max_followers
+            scraping_status["progress"] = scraping_status["total"]
             scraping_status["messages"].append("Scrape completed successfully.")
         except PlaywrightTimeoutError as e:
             logging.error(f"Timeout error during scraping: {str(e)}")
@@ -215,7 +266,64 @@ async def background_scrape(username: str, max_followers: int):
         logging.error(f"Critical error in background_scrape: {str(e)}")
         scraping_status["status"] = "error"
         scraping_status["messages"].append(f"Critical error occurred: {str(e)}")
+        
 
+async def scrape_list(page, username, max_accounts, list_type):
+    print(f"Scraping {list_type} list for {username}...")
+    await page.goto(f'https://x.com/{username}/{list_type}')
+    accounts = []
+    retry_count = 0
+    max_retries = 3
+    account_order = 0
+
+    while len(accounts) < max_accounts and retry_count < max_retries:
+        try:
+            await page.wait_for_selector('div[data-testid="cellInnerDiv"]', timeout=10000)
+            account_elements = await page.query_selector_all('div[data-testid="cellInnerDiv"]')
+            
+            if not account_elements:
+                retry_count += 1
+                print(f"No {list_type} found. Retry {retry_count}/{max_retries}")
+                await page.reload()
+                await asyncio.sleep(5)
+                continue
+
+            for element in account_elements:
+                if len(accounts) >= max_accounts:
+                    break
+                
+                try:
+                    name = await element.query_selector('div[dir="ltr"] > span')
+                    handle = await element.query_selector('div[dir="ltr"] > span:has-text("@")')
+                    name = await name.inner_text() if name else "N/A"
+                    handle = await handle.inner_text() if handle else "N/A"
+                    accounts.append({
+                        'name': name.strip(),
+                        'handle': handle.strip(),
+                        'account_order': account_order,
+                        'type': list_type
+                    })
+                    account_order += 1
+                    scraping_status["progress"] = len(accounts)
+                except Exception as e:
+                    print(f"Error extracting {list_type} basic data: {str(e)}")
+
+            if len(accounts) == 0:
+                retry_count += 1
+                print(f"No new {list_type} found. Retry {retry_count}/{max_retries}")
+            else:
+                retry_count = 0
+
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await asyncio.sleep(2)
+        except Exception as e:
+            print(f"Error during {list_type} list scraping: {str(e)}")
+            retry_count += 1
+            await page.reload()
+            await asyncio.sleep(5)
+
+    print(f"Scraped basic data for {len(accounts)} {list_type}")
+    return accounts
 
 async def scrape_follower_list(page, username, max_followers=1000):
     global scraping_status
@@ -577,10 +685,18 @@ async def get_followers(sort_by: str = "follower_order"):
 class ScrapeRequest(BaseModel):
     username: str
     max_followers: int
+    scrape_followers: bool
+    scrape_following: bool
 
 @app.post("/api/scrape")
 async def start_scrape(request: ScrapeRequest, background_tasks: BackgroundTasks):
-    background_tasks.add_task(background_scrape, request.username, request.max_followers)
+    background_tasks.add_task(
+        background_scrape,
+        request.username,
+        request.max_followers,
+        request.scrape_followers,
+        request.scrape_following
+    )
     return {"message": "Scraping started"}
 
 @app.get("/api/scrape-status")

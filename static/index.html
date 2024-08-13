@@ -44,9 +44,9 @@
 								placeholder="Enter X password"
 							/>
 						</div>
-						<button onclick="updateCredentials()" class="btn btn-primary">
+						<!-- <button onclick="updateCredentials()" class="btn btn-primary">
 							Update Credentials
-						</button>
+						</button> -->
 					</div>
 
 					<div class="card-section">
@@ -69,10 +69,26 @@
 								placeholder="Enter max followers to scrape"
 							/>
 						</div>
-						<button onclick="startScrape()" class="btn btn-success">
-							Start Scrape
-						</button>
 					</div>
+
+					<div class="card-section">
+						<h2 class="card-title">Scrape Selection</h2>
+						<div class="form-group">
+							<label>
+								<input type="checkbox" id="scrapeFollowers" checked />
+								Scrape Followers
+							</label>
+						</div>
+						<div class="form-group">
+							<label>
+								<input type="checkbox" id="scrapeFollowing" />
+								Scrape Following
+							</label>
+						</div>
+					</div>
+					<button onclick="startScrape()" class="btn btn-success">
+						Start Scrape
+					</button>
 
 					<div id="scrapeProgress" class="card-section" style="display: none">
 						<h2 class="card-title">Scrape Progress</h2>
@@ -95,17 +111,26 @@
 			</aside>
 
 			<main class="main-content">
-				<h2>Followers</h2>
-
 				<div class="search-filter-container">
 					<div class="search-box">
-						<input
-							type="text"
-							id="searchInput"
-							placeholder="Search followers..."
-						/>
+						<input type="text" id="searchInput" placeholder="Search..." />
 						<button onclick="searchFollowers()" class="icon-button">
-							<i class="fas fa-search"></i>
+							<svg
+								clip-rule="evenodd"
+								fill-rule="evenodd"
+								stroke-linejoin="round"
+								stroke-miterlimit="2"
+								viewBox="0 0 24 24"
+								height="24"
+								width="24"
+								fill="#fff"
+								xmlns="http://www.w3.org/2000/svg"
+							>
+								<path
+									d="m15.97 17.031c-1.479 1.238-3.384 1.985-5.461 1.985-4.697 0-8.509-3.812-8.509-8.508s3.812-8.508 8.509-8.508c4.695 0 8.508 3.812 8.508 8.508 0 2.078-.747 3.984-1.985 5.461l4.749 4.75c.146.146.219.338.219.531 0 .587-.537.75-.75.75-.192 0-.384-.073-.531-.22zm-5.461-13.53c-3.868 0-7.007 3.14-7.007 7.007s3.139 7.007 7.007 7.007c3.866 0 7.007-3.14 7.007-7.007s-3.141-7.007-7.007-7.007z"
+									fill-rule="nonzero"
+								/>
+							</svg>
 						</button>
 					</div>
 
@@ -156,7 +181,20 @@
 					</div>
 				</div>
 
-				<div class="charts-section">
+				<div class="filter-section">
+					<h2>Results</h2>
+					<div class="form-group">
+						<label>
+							<input type="checkbox" id="showFollowers" checked />
+							Show Followers
+						</label>
+					</div>
+					<div class="form-group">
+						<label>
+							<input type="checkbox" id="showFollowing" checked />
+							Show Following
+						</label>
+					</div>
 					<h2 class="charts-toggle" onclick="toggleCharts()">
 						Charts
 						<svg class="caret-icon" width="10" height="10" viewBox="0 0 10 10">
@@ -169,6 +207,9 @@
 							/>
 						</svg>
 					</h2>
+				</div>
+
+				<div class="charts-section">
 					<div
 						id="chartsContainer"
 						class="charts-container"
@@ -188,6 +229,8 @@
 				<table id="followerTable">
 					<thead>
 						<tr>
+							<th class="sortable" data-sort="account_order">Follow Order</th>
+							<th>Profile</th>
 							<th>Handle</th>
 							<th>Name</th>
 							<th class="sortable" data-sort="quality_score">Quality Score</th>
@@ -201,6 +244,7 @@
 								Account Age (days)
 							</th>
 							<th>Verified</th>
+							<th>Type</th>
 						</tr>
 					</thead>
 					<tbody id="followerTableBody"></tbody>
@@ -263,7 +307,7 @@
 			}
 
 			let followers = [];
-			let currentSort = { column: "follower_order", direction: "asc" };
+			let currentSort = { column: "account_order", direction: "asc" };
 
 			function sortFollowers(column) {
 				if (column === currentSort.column) {
@@ -274,45 +318,30 @@
 					currentSort.direction = "asc";
 				}
 
-				if (column === "follower_order") {
-					// For follower_order, we'll fetch from the server with the new sorting
-					fetchFollowerData(column, currentSort.direction);
-				} else {
-					// For other columns, we'll sort client-side
-					followers.sort((a, b) => {
-						let valueA = a[column];
-						let valueB = b[column];
+				followers.sort((a, b) => {
+					let valueA = a[column];
+					let valueB = b[column];
 
-						// Special handling for account age
-						if (column === "account_age_days") {
-							valueA =
-								a.days_since_joining !== undefined
-									? parseInt(a.days_since_joining)
-									: -1;
-							valueB =
-								b.days_since_joining !== undefined
-									? parseInt(b.days_since_joining)
-									: -1;
-						} else {
-							// Convert to numbers if possible for other columns
-							if (!isNaN(valueA)) valueA = parseFloat(valueA);
-							if (!isNaN(valueB)) valueB = parseFloat(valueB);
+					// Special handling for account_order and account age
+					if (column === "account_order" || column === "account_age_days") {
+						valueA = valueA !== undefined ? parseInt(valueA) : -1;
+						valueB = valueB !== undefined ? parseInt(valueB) : -1;
+					} else {
+						// Convert to numbers if possible for other columns
+						if (!isNaN(valueA)) valueA = parseFloat(valueA);
+						if (!isNaN(valueB)) valueB = parseFloat(valueB);
 
-							// Handle string comparisons
-							if (typeof valueA === "string") valueA = valueA.toLowerCase();
-							if (typeof valueB === "string") valueB = valueB.toLowerCase();
-						}
+						// Handle string comparisons
+						if (typeof valueA === "string") valueA = valueA.toLowerCase();
+						if (typeof valueB === "string") valueB = valueB.toLowerCase();
+					}
 
-						if (valueA < valueB)
-							return currentSort.direction === "asc" ? -1 : 1;
-						if (valueA > valueB)
-							return currentSort.direction === "asc" ? 1 : -1;
-						return 0;
-					});
+					if (valueA < valueB) return currentSort.direction === "asc" ? -1 : 1;
+					if (valueA > valueB) return currentSort.direction === "asc" ? 1 : -1;
+					return 0;
+				});
 
-					renderTable();
-				}
-
+				renderTable();
 				updateSortIndicators();
 			}
 
@@ -352,53 +381,76 @@
 			}
 
 			function renderTable(data = followers) {
+				console.log("Data received in renderTable:", data);
 				const tableBody = document.getElementById("followerTableBody");
 				tableBody.innerHTML = "";
-				data.forEach((follower) => {
+
+				console.log(followers);
+
+				data.forEach((account) => {
+					console.log("Processing account:", account);
 					const row = tableBody.insertRow();
+					row.setAttribute("data-type", account.type);
 
-					// Add follower order cell
-					row.insertCell(0).textContent = follower.follower_order;
+					// Follow Order
+					row.insertCell(0).textContent =
+						account.account_order !== undefined ? account.account_order : "N/A";
 
-					// Add profile image cell
+					// Profile Image
 					const imageCell = row.insertCell(1);
 					const img = document.createElement("img");
-					img.src = follower.profile_image_url || "/path/to/default/image.png";
+					img.src = account.profile_image_url || "/path/to/default/image.png";
 					img.alt = "Profile picture";
 					img.style.width = "32px";
 					img.style.height = "32px";
 					img.style.borderRadius = "50%";
 					imageCell.appendChild(img);
 
+					// Handle
 					const handleCell = row.insertCell(2);
 					const handleLink = document.createElement("a");
-					handleLink.href = `https://twitter.com/${follower.handle.replace(
+					handleLink.href = `https://twitter.com/${account.handle.replace(
 						"@",
 						""
 					)}`;
-					handleLink.textContent = follower.handle || "N/A";
+					handleLink.textContent = account.handle || "N/A";
 					handleLink.className = "profile-link";
 					handleLink.target = "_blank";
 					handleLink.rel = "noopener noreferrer";
 					handleCell.appendChild(handleLink);
 
-					row.insertCell(3).textContent = follower.name || "N/A";
+					// Name
+					row.insertCell(3).textContent = account.name || "N/A";
+
+					// Quality Score
 					row.insertCell(4).textContent =
-						typeof follower.quality_score === "number"
-							? follower.quality_score.toFixed(2)
+						typeof account.quality_score === "number"
+							? account.quality_score.toFixed(2)
 							: "N/A";
-					row.insertCell(5).textContent = follower.follower_count || "N/A";
-					row.insertCell(6).textContent = follower.following_count || "N/A";
+
+					// Follower Count
+					row.insertCell(5).textContent = account.follower_count || "N/A";
+
+					// Following Count
+					row.insertCell(6).textContent = account.following_count || "N/A";
+
+					// Account Age (days)
 					row.insertCell(7).textContent =
-						follower.days_since_joining !== undefined
-							? parseInt(follower.days_since_joining)
+						account.days_since_joining !== undefined
+							? parseInt(account.days_since_joining)
 							: "N/A";
-					row.insertCell(8).textContent = follower.verified ? "Yes" : "No";
+
+					console.log(account.verified, account.type);
+					// Verified
+					row.insertCell(8).textContent = account.verified ? "Yes" : "No";
+
+					// Type
+					row.insertCell(9).textContent = account.type || "N/A";
 				});
 			}
 
 			async function fetchFollowerData(
-				sortBy = "follower_order",
+				sortBy = "account_order",
 				sortDirection = "asc"
 			) {
 				document.getElementById("loadingSpinner").style.display = "flex";
@@ -414,23 +466,7 @@
 					2
 				);
 
-				const qualityScores = followers
-					.map((f) => f.quality_score)
-					.filter((score) => score !== undefined && score !== null);
-				console.log("Quality scores:", qualityScores);
-
-				const medianScore = calculateMedian(qualityScores);
-				const highQuality = qualityScores.filter(
-					(score) => score > medianScore
-				).length;
-				const lowQuality = qualityScores.length - highQuality;
-
-				const verifiedCount = followers.filter((f) => f.verified).length;
-				const unverifiedCount = followers.length - verifiedCount;
-
-				followers = data;
-				renderTable();
-				updateCharts();
+				filterResults(); // Apply filters immediately after fetching data
 				document.getElementById("loadingSpinner").style.display = "none";
 			}
 
@@ -508,15 +544,26 @@
 			}
 
 			async function startScrape() {
+				updateCredentials();
+
 				const scrapeButton = document.querySelector("button.btn.btn-success");
 				scrapeButton.disabled = true;
 				scrapeButton.textContent = "Scraping...";
 
 				const username = document.getElementById("usernameInput").value;
 				const maxFollowers = document.getElementById("maxFollowersInput").value;
+				const scrapeFollowers =
+					document.getElementById("scrapeFollowers").checked;
+				const scrapeFollowing =
+					document.getElementById("scrapeFollowing").checked;
 
 				if (!username || !maxFollowers) {
 					alert("Please enter both username and max followers");
+					return;
+				}
+
+				if (!scrapeFollowers && !scrapeFollowing) {
+					alert("Please select at least one option to scrape");
 					return;
 				}
 
@@ -528,6 +575,8 @@
 					body: JSON.stringify({
 						username,
 						max_followers: parseInt(maxFollowers),
+						scrape_followers: scrapeFollowers,
+						scrape_following: scrapeFollowing,
 					}),
 				});
 
@@ -541,6 +590,20 @@
 					scrapeButton.disabled = false;
 					scrapeButton.textContent = "Start Scrape";
 				}
+			}
+
+			function filterResults() {
+				const showFollowers = document.getElementById("showFollowers").checked;
+				const showFollowing = document.getElementById("showFollowing").checked;
+
+				const filteredData = followers.filter(
+					(account) =>
+						(showFollowers && account.type === "followers") ||
+						(showFollowing && account.type === "following")
+				);
+
+				renderTable(filteredData);
+				updateCharts(filteredData);
 			}
 
 			async function checkScrapeStatus() {
@@ -613,17 +676,13 @@
 				fetchCredentials();
 				const headerRow = document.querySelector("#followerTable thead tr");
 
-				// Add follower order header
-				const orderHeader = document.createElement("th");
-				orderHeader.textContent = "Follow Order";
-				orderHeader.classList.add("sortable");
-				orderHeader.dataset.sort = "follower_order";
-				headerRow.insertBefore(orderHeader, headerRow.firstChild);
-
-				// Add profile image header
-				const imageHeader = document.createElement("th");
-				imageHeader.textContent = "Profile";
-				headerRow.insertBefore(imageHeader, headerRow.children[1]);
+				// Add event listeners for the filter checkboxes
+				document
+					.getElementById("showFollowers")
+					.addEventListener("change", filterResults);
+				document
+					.getElementById("showFollowing")
+					.addEventListener("change", filterResults);
 
 				// Add event listener for search input
 				document
