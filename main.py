@@ -51,7 +51,7 @@ followers_collection = db['followers']
 scraping_status = {"status": "idle", "progress": 0, "total": 0}
 
 # Rate limiting
-RATE_LIMIT_DELAY = float(os.getenv('RATE_LIMIT_DELAY', '2.0'))  # Default to 2 seconds
+RATE_LIMIT_DELAY = float(os.getenv('RATE_LIMIT_DELAY', '0.2'))  # Default to 2 seconds
 
 # Crawl Settings
 headless = True
@@ -266,7 +266,7 @@ async def background_scrape(username: str, max_accounts: int, scrape_followers: 
         logging.error(f"Critical error in background_scrape: {str(e)}")
         scraping_status["status"] = "error"
         scraping_status["messages"].append(f"Critical error occurred: {str(e)}")
-        
+
 
 async def scrape_list(page, username, max_accounts, list_type):
     print(f"Scraping {list_type} list for {username}...")

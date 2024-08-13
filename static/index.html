@@ -11,6 +11,12 @@
 			type="text/css"
 			media="all"
 		/>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
+			rel="stylesheet"
+		/>
 	</head>
 	<body>
 		<div id="loadingSpinner" style="display: none">
@@ -19,8 +25,6 @@
 		</div>
 
 		<div class="main-container">
-			<button id="sidebarToggle" class="sidebar-toggle">☰</button>
-
 			<aside id="sidebar" class="sidebar">
 				<div class="card">
 					<div class="header">XCHECK</div>
@@ -50,7 +54,7 @@
 					</div>
 
 					<div class="card-section">
-						<h2 class="card-title">Start New Scrape</h2>
+						<h2 class="card-title">Scrape Settings</h2>
 						<div class="form-group">
 							<label for="usernameInput">Target Username</label>
 							<input
@@ -61,7 +65,7 @@
 							/>
 						</div>
 						<div class="form-group">
-							<label for="maxFollowersInput">Max Followers</label>
+							<label for="maxFollowersInput">Max Scrape</label>
 							<input
 								type="number"
 								id="maxFollowersInput"
@@ -69,10 +73,7 @@
 								placeholder="Enter max followers to scrape"
 							/>
 						</div>
-					</div>
 
-					<div class="card-section">
-						<h2 class="card-title">Scrape Selection</h2>
 						<div class="form-group">
 							<label>
 								<input type="checkbox" id="scrapeFollowers" checked />
@@ -112,32 +113,36 @@
 
 			<main class="main-content">
 				<div class="search-filter-container">
-					<div class="search-box">
-						<input type="text" id="searchInput" placeholder="Search..." />
-						<button onclick="searchFollowers()" class="icon-button">
-							<svg
-								clip-rule="evenodd"
-								fill-rule="evenodd"
-								stroke-linejoin="round"
-								stroke-miterlimit="2"
-								viewBox="0 0 24 24"
-								height="24"
-								width="24"
-								fill="#fff"
-								xmlns="http://www.w3.org/2000/svg"
-							>
-								<path
-									d="m15.97 17.031c-1.479 1.238-3.384 1.985-5.461 1.985-4.697 0-8.509-3.812-8.509-8.508s3.812-8.508 8.509-8.508c4.695 0 8.508 3.812 8.508 8.508 0 2.078-.747 3.984-1.985 5.461l4.749 4.75c.146.146.219.338.219.531 0 .587-.537.75-.75.75-.192 0-.384-.073-.531-.22zm-5.461-13.53c-3.868 0-7.007 3.14-7.007 7.007s3.139 7.007 7.007 7.007c3.866 0 7.007-3.14 7.007-7.007s-3.141-7.007-7.007-7.007z"
-									fill-rule="nonzero"
-								/>
-							</svg>
-						</button>
-					</div>
+					<div class="search-filter-container-inner">
+						<button id="sidebarToggle" class="sidebar-toggle">☰</button>
 
-					<div class="filter-toggle">
-						<button onclick="toggleFilters()" class="btn btn-secondary">
-							<i class="fas fa-filter"></i> Filters
-						</button>
+						<div class="search-box">
+							<input type="text" id="searchInput" placeholder="Search..." />
+							<button onclick="searchFollowers()" class="icon-button">
+								<svg
+									clip-rule="evenodd"
+									fill-rule="evenodd"
+									stroke-linejoin="round"
+									stroke-miterlimit="2"
+									viewBox="0 0 24 24"
+									height="24"
+									width="24"
+									fill="#fff"
+									xmlns="http://www.w3.org/2000/svg"
+								>
+									<path
+										d="m15.97 17.031c-1.479 1.238-3.384 1.985-5.461 1.985-4.697 0-8.509-3.812-8.509-8.508s3.812-8.508 8.509-8.508c4.695 0 8.508 3.812 8.508 8.508 0 2.078-.747 3.984-1.985 5.461l4.749 4.75c.146.146.219.338.219.531 0 .587-.537.75-.75.75-.192 0-.384-.073-.531-.22zm-5.461-13.53c-3.868 0-7.007 3.14-7.007 7.007s3.139 7.007 7.007 7.007c3.866 0 7.007-3.14 7.007-7.007s-3.141-7.007-7.007-7.007z"
+										fill-rule="nonzero"
+									/>
+								</svg>
+							</button>
+						</div>
+
+						<div class="filter-toggle">
+							<button onclick="toggleFilters()" class="btn btn-secondary">
+								<i class="fas fa-filter"></i> Filters
+							</button>
+						</div>
 					</div>
 
 					<div id="filterOptions" class="filter-panel">
@@ -229,7 +234,7 @@
 				<table id="followerTable">
 					<thead>
 						<tr>
-							<th class="sortable" data-sort="account_order">Follow Order</th>
+							<th class="sortable" data-sort="account_order">#</th>
 							<th>Profile</th>
 							<th>Handle</th>
 							<th>Name</th>
@@ -240,9 +245,7 @@
 							<th class="sortable" data-sort="following_count">
 								Following Count
 							</th>
-							<th class="sortable" data-sort="account_age_days">
-								Account Age (days)
-							</th>
+							<th class="sortable" data-sort="account_age_days">Account Age</th>
 							<th>Verified</th>
 							<th>Type</th>
 						</tr>
@@ -318,7 +321,10 @@
 					currentSort.direction = "asc";
 				}
 
-				followers.sort((a, b) => {
+				// Apply the current filters before sorting
+				const filteredFollowers = applyCurrentFilters();
+
+				filteredFollowers.sort((a, b) => {
 					let valueA = a[column];
 					let valueB = b[column];
 
@@ -341,8 +347,20 @@
 					return 0;
 				});
 
-				renderTable();
+				renderTable(filteredFollowers);
+				updateCharts(filteredFollowers);
 				updateSortIndicators();
+			}
+
+			function applyCurrentFilters() {
+				const showFollowers = document.getElementById("showFollowers").checked;
+				const showFollowing = document.getElementById("showFollowing").checked;
+
+				return followers.filter(
+					(account) =>
+						(showFollowers && account.type === "followers") ||
+						(showFollowing && account.type === "following")
+				);
 			}
 
 			function updateSortIndicators() {
@@ -593,15 +611,7 @@
 			}
 
 			function filterResults() {
-				const showFollowers = document.getElementById("showFollowers").checked;
-				const showFollowing = document.getElementById("showFollowing").checked;
-
-				const filteredData = followers.filter(
-					(account) =>
-						(showFollowers && account.type === "followers") ||
-						(showFollowing && account.type === "following")
-				);
-
+				const filteredData = applyCurrentFilters();
 				renderTable(filteredData);
 				updateCharts(filteredData);
 			}
@@ -668,7 +678,7 @@
 				});
 
 				const result = await response.json();
-				alert(result.message);
+				// alert(result.message);
 			}
 
 			// event listeners
@@ -700,6 +710,9 @@
 				// Initialize chartsRendered flag
 				window.chartsRendered = false;
 
+				// setup inital max scrape value
+				document.getElementById("maxFollowersInput").value = 10000000;
+
 				// Sidebar control
 				const sidebar = document.getElementById("sidebar");
 				const sidebarToggle = document.getElementById("sidebarToggle");
@@ -708,7 +721,7 @@
 				function toggleSidebar() {
 					sidebar.classList.toggle("open");
 					if (sidebar.classList.contains("open")) {
-						mainContent.style.marginLeft = "300px";
+						mainContent.style.marginLeft = "320px";
 					} else {
 						mainContent.style.marginLeft = "0";
 					}
