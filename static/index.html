@@ -17,6 +17,7 @@
 			href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
 			rel="stylesheet"
 		/>
+		<link rel="icon" type="image/png" href="/static/favicon.png" />
 	</head>
 	<body>
 		<div id="loadingSpinner" style="display: none">
@@ -468,14 +469,14 @@
 			}
 
 			function renderTable(data = followers) {
-				console.log("Data received in renderTable:", data);
+				// console.log("Data received in renderTable:", data);
 				const tableBody = document.getElementById("followerTableBody");
 				tableBody.innerHTML = "";
 
-				console.log(followers);
+				// console.log(followers);
 
 				data.forEach((account) => {
-					console.log("Processing account:", account);
+					// console.log("Processing account:", account);
 					const row = tableBody.insertRow();
 					row.setAttribute("data-type", account.type);
 
@@ -527,7 +528,7 @@
 							? parseInt(account.days_since_joining)
 							: "N/A";
 
-					console.log(account.verified, account.type);
+					// console.log(account.verified, account.type);
 					// Verified
 					row.insertCell(8).textContent = account.verified ? "Yes" : "No";
 
@@ -546,7 +547,7 @@
 				);
 				const data = await response.json();
 				followers = data;
-				console.log("First follower object:", followers[0]);
+				// console.log("First follower object:", followers[0]);
 				document.getElementById("debugInfo").textContent = JSON.stringify(
 					followers[0],
 					null,
