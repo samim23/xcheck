@@ -147,15 +147,45 @@
 
 					<div id="filterOptions" class="filter-panel">
 						<div class="filter-group">
-							<label for="followerCountFilter">Minimum Followers</label>
+							<label for="minFollowerCountFilter">Minimum Followers</label>
 							<input
 								type="number"
-								id="followerCountFilter"
+								id="minFollowerCountFilter"
 								min="0"
 								placeholder="e.g., 1000"
 							/>
 						</div>
-
+						<div class="filter-group">
+							<label for="maxFollowerCountFilter">Maximum Followers</label>
+							<input
+								type="number"
+								id="maxFollowerCountFilter"
+								min="0"
+								placeholder="e.g., 10000"
+							/>
+						</div>
+						<div class="filter-group">
+							<label for="minQualityScoreFilter">Minimum Quality Score</label>
+							<input
+								type="number"
+								id="minQualityScoreFilter"
+								min="0"
+								max="100"
+								step="0.01"
+								placeholder="e.g., 50"
+							/>
+						</div>
+						<div class="filter-group">
+							<label for="maxQualityScoreFilter">Maximum Quality Score</label>
+							<input
+								type="number"
+								id="maxQualityScoreFilter"
+								min="0"
+								max="100"
+								step="0.01"
+								placeholder="e.g., 100"
+							/>
+						</div>
 						<div class="filter-group">
 							<label for="accountAgeFilter">Minimum Account Age (days)</label>
 							<input
@@ -165,7 +195,6 @@
 								placeholder="e.g., 30"
 							/>
 						</div>
-
 						<div class="filter-group">
 							<label for="verificationFilter">Verification Status</label>
 							<select id="verificationFilter">
@@ -174,7 +203,6 @@
 								<option value="unverified">Unverified</option>
 							</select>
 						</div>
-
 						<div class="filter-actions">
 							<button onclick="applyFilters()" class="btn btn-primary">
 								Apply Filters
@@ -356,10 +384,37 @@
 				const showFollowers = document.getElementById("showFollowers").checked;
 				const showFollowing = document.getElementById("showFollowing").checked;
 
+				const minFollowers =
+					parseInt(document.getElementById("minFollowerCountFilter").value) ||
+					0;
+				const maxFollowers =
+					parseInt(document.getElementById("maxFollowerCountFilter").value) ||
+					Infinity;
+				const minQualityScore =
+					parseFloat(document.getElementById("minQualityScoreFilter").value) ||
+					0;
+				const maxQualityScore =
+					parseFloat(document.getElementById("maxQualityScoreFilter").value) ||
+					100;
+				const minAge =
+					parseInt(document.getElementById("accountAgeFilter").value) || 0;
+				const verificationStatus =
+					document.getElementById("verificationFilter").value;
+
 				return followers.filter(
 					(account) =>
-						(showFollowers && account.type === "followers") ||
-						(showFollowing && account.type === "following")
+						((showFollowers && account.type === "followers") ||
+							(showFollowing && account.type === "following")) &&
+						(parseInt(account.follower_count) || 0) >= minFollowers &&
+						(parseInt(account.follower_count) || 0) <= maxFollowers &&
+						(parseFloat(account.quality_score) || 0) >= minQualityScore &&
+						(parseFloat(account.quality_score) || 0) <= maxQualityScore &&
+						(parseInt(account.days_since_joining) || 0) >= minAge &&
+						(verificationStatus === "all" ||
+							(verificationStatus === "verified" &&
+								account.verified === true) ||
+							(verificationStatus === "unverified" &&
+								account.verified !== true))
 				);
 			}
 
@@ -374,7 +429,17 @@
 
 			function applyFilters() {
 				const minFollowers =
-					parseInt(document.getElementById("followerCountFilter").value) || 0;
+					parseInt(document.getElementById("minFollowerCountFilter").value) ||
+					0;
+				const maxFollowers =
+					parseInt(document.getElementById("maxFollowerCountFilter").value) ||
+					Infinity;
+				const minQualityScore =
+					parseFloat(document.getElementById("minQualityScoreFilter").value) ||
+					0;
+				const maxQualityScore =
+					parseFloat(document.getElementById("maxQualityScoreFilter").value) ||
+					100;
 				const minAge =
 					parseInt(document.getElementById("accountAgeFilter").value) || 0;
 				const verificationStatus =
@@ -384,9 +449,13 @@
 					const followerCount = parseInt(follower.follower_count) || 0;
 					const accountAge = parseInt(follower.days_since_joining) || 0;
 					const isVerified = follower.verified === true;
+					const qualityScore = parseFloat(follower.quality_score) || 0;
 
 					return (
 						followerCount >= minFollowers &&
+						followerCount <= maxFollowers &&
+						qualityScore >= minQualityScore &&
+						qualityScore <= maxQualityScore &&
 						accountAge >= minAge &&
 						(verificationStatus === "all" ||
 							(verificationStatus === "verified" && isVerified) ||
@@ -767,7 +836,10 @@
 			}
 
 			function resetFilters() {
-				document.getElementById("followerCountFilter").value = "";
+				document.getElementById("minFollowerCountFilter").value = "";
+				document.getElementById("maxFollowerCountFilter").value = "";
+				document.getElementById("minQualityScoreFilter").value = "";
+				document.getElementById("maxQualityScoreFilter").value = "";
 				document.getElementById("accountAgeFilter").value = "";
 				document.getElementById("verificationFilter").value = "all";
 				applyFilters();
