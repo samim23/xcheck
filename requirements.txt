@@ -1,1 +1,11 @@
-playwright==1.32.1
+fastapi==0.114.0
+matplotlib==3.9.2
+nltk==3.8.2
+numpy==2.1.1
+pandas==2.2.2
+playwright==1.46.0
+pydantic==2.9.0
+pymongo==4.8.0
+python-dotenv==1.0.1
+tqdm==4.66.4
+uvicorn==0.30.6
