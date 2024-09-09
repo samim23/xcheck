@@ -15,6 +15,10 @@ I thought I was doing well on X with 20K followers. Turns out, I was mostly talk
 - Auto-assigns quality scores to accounts
 - Filtering, search and visualization tools
 
+## Requirements
+
+Python 3.10+
+
 ## Installation
 
 pip install -r requirements.txt

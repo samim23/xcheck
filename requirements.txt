@@ -1,6 +1,6 @@
 fastapi==0.114.0
 matplotlib==3.9.2
-nltk==3.8.2
+nltk==3.9.1
 numpy==2.1.1
 pandas==2.2.2
 playwright==1.46.0
