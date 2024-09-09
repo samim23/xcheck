@@ -17,7 +17,8 @@ I thought I was doing well on X with 20K followers. Turns out, I was mostly talk
 
 ## Requirements
 
-Python 3.10+
+- Python 3.10+
+- MongoDB (Default on port 27017)
 
 ## Installation
 
