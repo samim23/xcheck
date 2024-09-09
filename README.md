@@ -26,11 +26,11 @@ pip install -r requirements.txt
 
 Set enviroment variables:
 
-export X_USERNAME='your username'
-export X_PASSWORD='your password'
-export MONGO_URI=mongodb://localhost:27017
-export MONGO_DB="xcheck"
-export RATE_LIMIT_DELAY=2.0
+- export X_USERNAME='your username'
+- export X_PASSWORD='your password'
+- export MONGO_URI=mongodb://localhost:27017
+- export MONGO_DB="xcheck"
+- export RATE_LIMIT_DELAY=2.0
 
 ## Usage
 
