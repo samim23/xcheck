@@ -1,6 +1,6 @@
 # XCheck
 
-I thought I was doing well on X with 20K followers. Turns out, I was mostly talking to ghosts and bots that have invaded X but are hard to detect. That's why I built XCheck, your personal X detective that uncovers the truth about your X network.
+I thought I was doing well on X with 20K followers. Turns out, I was mostly talking to ghosts and bots that have invaded X but are hard to detect. That's why I built XCheck, your personal X detective that uncovers the truth about your social network.
 
 ![XCheck](https://samim.io/static/upload/Screenshot-20240909090323-1340x758.png)
 
