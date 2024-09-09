@@ -1,6 +1,6 @@
 # XCheck
 
-I thought I was doing well on X with 20K followers. Turns out, I was mostly talking to ghosts and bots that have invaded X but are hard to detect. That's why I built XCheck, your personal X detective: https://github.com/samim23/xcheck
+I thought I was doing well on X with 20K followers. Turns out, I was mostly talking to ghosts and bots that have invaded X but are hard to detect. That's why I built XCheck, your personal X detective that uncovers the truth about your X network.
 
 ![XCheck](https://samim.io/static/upload/Screenshot-20240909090323-1340x758.png)
 
@@ -14,8 +14,6 @@ That's why I built XCheck: A little open-source tool that crawls and analyzes yo
 - Analyzes followers/following of any public X account
 - Auto-assigns quality scores to accounts
 - Filtering, search and visualization tools
-
-Uncover the truth about your X network.
 
 ## Installation
 
